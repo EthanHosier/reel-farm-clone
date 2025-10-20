@@ -28,7 +28,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create response
 	response := Response{
-		Message: "Reel Farm API is healthy!!!",
+		Message: "Reel Farm API is healthy!",
 		Status:  "ok",
 		Port:    port,
 	}
