@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/ethanhosier/reel-farm/internal/api"
 	"github.com/ethanhosier/reel-farm/internal/handler"
@@ -15,12 +16,25 @@ import (
 	"github.com/ethanhosier/reel-farm/internal/repository"
 	"github.com/ethanhosier/reel-farm/internal/service"
 	"github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	// Parse command line flags
-	devMode := flag.Bool("dev", false, "Enable development mode with hardcoded user ID")
+	noAuth := flag.Bool("noAuth", false, "Disable authentication (for development/testing)")
 	flag.Parse()
+
+	// Load .env file if it exists
+	envPath := filepath.Join(".", ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		if err := godotenv.Load(envPath); err != nil {
+			log.Printf("Warning: Failed to load .env file: %v", err)
+		} else {
+			log.Println("✅ Loaded environment variables from .env file")
+		}
+	} else {
+		log.Println("ℹ️  No .env file found, using system environment variables")
+	}
 
 	// Get port from environment variable or use default
 	port := os.Getenv("PORT")
@@ -44,10 +58,10 @@ func main() {
 	apiServer := handler.NewAPIServer(userService)
 
 	// Create HTTP handler using generated code with auth middleware
-	handler := api.HandlerWithOptions(apiServer, api.StdHTTPServerOptions{
+	apiHandler := api.HandlerWithOptions(apiServer, api.StdHTTPServerOptions{
 		BaseRouter: http.NewServeMux(),
 		Middlewares: []api.MiddlewareFunc{
-			api.MiddlewareFunc(middleware.AuthMiddleware(*devMode)),
+			api.MiddlewareFunc(middleware.AuthMiddleware(*noAuth)),
 		},
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			w.Header().Set("Content-Type", "application/json")
@@ -59,10 +73,13 @@ func main() {
 		},
 	})
 
+	// Wrap the API handler with CORS middleware
+	handler := middleware.CORSMiddleware()(apiHandler)
+
 	// Start the server
 	fmt.Printf("🚀 Reel Farm server starting on port %s\n", port)
-	if *devMode {
-		fmt.Printf("🔧 Development mode enabled - using hardcoded user ID\n")
+	if *noAuth {
+		fmt.Printf("🔧 No-auth mode enabled - authentication disabled\n")
 	}
 	fmt.Printf("📡 Health check available at: http://localhost:%s/health\n", port)
 	fmt.Printf("👤 User endpoint available at: http://localhost:%s/user\n", port)

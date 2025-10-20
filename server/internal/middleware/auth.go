@@ -12,7 +12,7 @@ import (
 )
 
 // AuthMiddleware validates JWT tokens and extracts user ID
-func AuthMiddleware(devMode bool) func(http.Handler) http.Handler {
+func AuthMiddleware(noAuth bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for health endpoint
@@ -21,8 +21,8 @@ func AuthMiddleware(devMode bool) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Development mode: use hardcoded user ID
-			if devMode {
+			// No-auth mode: use hardcoded user ID (for development/testing)
+			if noAuth {
 				userID := "65a950f6-a3b0-4be2-824a-b99051d5a62f"
 				ctx := context_keys.SetUserID(r.Context(), userID)
 				next.ServeHTTP(w, r.WithContext(ctx))

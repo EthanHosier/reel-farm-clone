@@ -2,6 +2,52 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## API Client Generation
+
+This project uses OpenAPI TypeScript code generation to create type-safe API clients from the backend OpenAPI specification.
+
+### Generating the API Client
+
+To generate the TypeScript API client from the OpenAPI specification:
+
+```bash
+npm run generate-api
+```
+
+This command will:
+- Read the OpenAPI spec from `../openapi/api.yaml`
+- Generate TypeScript types and service classes in `./src/api/`
+- Create type-safe API clients for all backend endpoints
+
+### API Client Usage
+
+The generated API client provides:
+- **Type-safe models**: `UserAccount`, `HealthResponse`, `ErrorResponse`
+- **Service classes**: `UsersService`, `HealthService`
+- **Core utilities**: `OpenAPI`, `ApiError`, `CancelablePromise`
+
+Example usage:
+```typescript
+import { UsersService, OpenAPI } from './api';
+
+// Configure the base URL and authentication
+OpenAPI.BASE = 'http://localhost:3000';
+OpenAPI.TOKEN = 'Bearer your-jwt-token';
+
+// Make API calls
+const userAccount = await UsersService.getUserAccount();
+```
+
+### Regenerating After Backend Changes
+
+Whenever the backend API changes (new endpoints, modified schemas, etc.), regenerate the client:
+
+```bash
+npm run generate-api
+```
+
+This ensures your frontend stays in sync with the backend API.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
