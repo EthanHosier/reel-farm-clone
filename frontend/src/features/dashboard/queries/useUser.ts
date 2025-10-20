@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { CACHE_KEYS } from "@/lib/cacheKeys";
 import type { UserAccount } from "@/lib/api";
 
 export function useUser() {
   return useQuery({
-    queryKey: ["user"],
+    queryKey: CACHE_KEYS.USER,
     queryFn: async (): Promise<UserAccount> => {
       return await api.users.getUserAccount();
     },
