@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Reel Farm API
+  description: API for Reel Farm application
+  version: 1.0.0
+  contact:
+    name: Ethan Hosier
+    email: ethanjhosier@gmail.com
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the API
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}:
+    get:
+      summary: Get user account by ID
+      description: Retrieves a user account by its UUID
+      operationId: getUserAccount
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User account UUID
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        "200":
+          description: User account retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAccount"
+        "400":
+          description: Invalid user ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User account not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - message
+        - status
+        - port
+      properties:
+        message:
+          type: string
+          example: "Reel Farm API is healthy!"
+        status:
+          type: string
+          example: "ok"
+        port:
+          type: string
+          example: "3000"
+
+    UserAccount:
+      type: object
+      required:
+        - id
+        - plan
+        - plan_started_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user account
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        plan:
+          type: string
+          description: User's subscription plan
+          example: "free"
+        plan_started_at:
+          type: string
+          format: date-time
+          description: When the current plan started
+          example: "2024-01-01T00:00:00Z"
+        plan_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the current plan ends (null for free plans)
+          example: "2024-12-31T23:59:59Z"
+        billing_customer_id:
+          type: string
+          nullable: true
+          description: External billing system customer ID
+          example: "cus_1234567890"
+        created_at:
+          type: string
+          format: date-time
+          description: When the account was created
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: When the account was last updated
+          example: "2024-01-01T00:00:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "validation_error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid user ID format"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Users
+    description: User account management

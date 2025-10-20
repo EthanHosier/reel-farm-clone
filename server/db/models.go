@@ -17,11 +17,11 @@ type SchemaMigration struct {
 }
 
 type UserAccount struct {
-	ID                uuid.UUID   `json:"id"`
-	Plan              string      `json:"plan"`
-	PlanStartedAt     time.Time   `json:"plan_started_at"`
-	PlanEndsAt        **time.Time `json:"plan_ends_at"`
-	BillingCustomerID *string     `json:"billing_customer_id"`
-	CreatedAt         time.Time   `json:"created_at"`
-	UpdatedAt         time.Time   `json:"updated_at"`
+	ID                uuid.UUID          `json:"id"`
+	Plan              string             `json:"plan"`
+	PlanStartedAt     time.Time          `json:"plan_started_at"`
+	PlanEndsAt        pgtype.Timestamptz `json:"plan_ends_at"`
+	BillingCustomerID *string            `json:"billing_customer_id"`
+	CreatedAt         time.Time          `json:"created_at"`
+	UpdatedAt         time.Time          `json:"updated_at"`
 }

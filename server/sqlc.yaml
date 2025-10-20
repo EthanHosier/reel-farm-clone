@@ -28,5 +28,3 @@ sql:
             go_type: "time.Time"
           - column: "*.plan_started_at"
             go_type: "time.Time"
-          - column: "*.plan_ends_at"
-            go_type: "*time.Time"

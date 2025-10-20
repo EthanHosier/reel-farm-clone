@@ -1,6 +1,6 @@
 # Makefile for Reel Farm Server
 
-.PHONY: help pull-schema generate clean
+.PHONY: help pull-schema generate clean generate-api
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -17,10 +17,17 @@ generate: ## Generate SQLC code only (requires schema to exist)
 	@sqlc generate
 	@echo "✅ SQLC code generated"
 
+generate-api: ## Generate OpenAPI code
+	@echo "🔄 Generating OpenAPI code..."
+	@mkdir -p internal/api
+	@go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -config ../openapi/config.yaml ../openapi/api.yaml
+	@echo "✅ OpenAPI code generated"
+
 clean: ## Clean generated files
 	@echo "🧹 Cleaning generated files..."
 	@rm -rf db/
 	@rm -f sql/schema/schema.sql
+	@rm -f internal/api/generated.go
 	@echo "✅ Cleaned"
 
 dev: ## Run development server
