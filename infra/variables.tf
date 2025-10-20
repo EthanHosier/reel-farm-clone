@@ -70,5 +70,16 @@ variable "container_environment" {
     name  = string
     value = string
   }))
-  default = []
+  default = [
+    {
+      name  = "PORT"
+      value = "3000"
+    }
+  ]
+}
+
+variable "database_url" {
+  description = "Database connection URL"
+  type        = string
+  sensitive   = true
 }

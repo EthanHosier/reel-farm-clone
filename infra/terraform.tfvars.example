@@ -19,12 +19,11 @@ fargate_cpu    = 256
 fargate_memory = 512
 desired_count  = 1
 
+# Database Configuration
+database_url = "postgresql://postgres:password@db.project.supabase.co:5432/postgres"
+
 # Container Environment Variables
 container_environment = [
-  {
-    name  = "NODE_ENV"
-    value = "production"
-  },
   {
     name  = "PORT"
     value = "3000"

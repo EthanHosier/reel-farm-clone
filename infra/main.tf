@@ -19,9 +19,10 @@ data "aws_availability_zones" "available" {
 
 # VPC
 resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+  cidr_block                       = var.vpc_cidr
+  enable_dns_hostnames             = true
+  enable_dns_support               = true
+  assign_generated_ipv6_cidr_block = true
 
   tags = {
     Name = "${var.project_name}-vpc"
@@ -39,10 +40,12 @@ resource "aws_internet_gateway" "main" {
 
 # Public Subnet 1
 resource "aws_subnet" "public_1" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidr
-  availability_zone       = data.aws_availability_zones.available.names[0]
-  map_public_ip_on_launch = true
+  vpc_id                          = aws_vpc.main.id
+  cidr_block                      = var.public_subnet_cidr
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 1)
+  availability_zone               = data.aws_availability_zones.available.names[0]
+  map_public_ip_on_launch         = true
+  assign_ipv6_address_on_creation = true
 
   tags = {
     Name = "${var.project_name}-public-subnet-1"
@@ -51,10 +54,12 @@ resource "aws_subnet" "public_1" {
 
 # Public Subnet 2
 resource "aws_subnet" "public_2" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_2_cidr
-  availability_zone       = data.aws_availability_zones.available.names[1]
-  map_public_ip_on_launch = true
+  vpc_id                          = aws_vpc.main.id
+  cidr_block                      = var.public_subnet_2_cidr
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main.ipv6_cidr_block, 8, 2)
+  availability_zone               = data.aws_availability_zones.available.names[1]
+  map_public_ip_on_launch         = true
+  assign_ipv6_address_on_creation = true
 
   tags = {
     Name = "${var.project_name}-public-subnet-2"
@@ -68,6 +73,11 @@ resource "aws_route_table" "public" {
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
+  }
+
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_internet_gateway.main.id
   }
 
   tags = {
@@ -108,10 +118,11 @@ resource "aws_security_group" "alb" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = {
@@ -133,10 +144,11 @@ resource "aws_security_group" "fargate" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = {
@@ -233,7 +245,12 @@ resource "aws_ecs_task_definition" "main" {
         }
       ]
 
-      environment = var.container_environment
+      environment = concat(var.container_environment, [
+        {
+          name  = "DATABASE_URL"
+          value = var.database_url
+        }
+      ])
 
       logConfiguration = {
         logDriver = "awslogs"
