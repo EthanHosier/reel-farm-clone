@@ -36,7 +36,7 @@ func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	// Create response using generated type
 	response := api.HealthResponse{
-		Message: "Reel Farm API is healthy!!",
+		Message: "Reel Farm API is healthy!!!",
 		Status:  "ok",
 		Port:    port,
 	}
