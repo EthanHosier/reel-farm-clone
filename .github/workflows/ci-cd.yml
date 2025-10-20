@@ -47,6 +47,9 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
 
+      - name: Generate API code
+        run: make generate-api
+
       - name: Run tests
         run: go test -v ./...
 
