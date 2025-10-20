@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
+import { ROUTES } from "@/lib/routes";
 import type { UserAccount } from "@/api";
 
 export function useUser() {
   return useQuery({
     queryKey: ["user"],
     queryFn: async (): Promise<UserAccount> => {
-      const response = await apiClient.get("/user");
+      const response = await api.get(ROUTES.USER);
       return response.data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes

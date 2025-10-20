@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Create axios instance with default config
-export const apiClient = axios.create({
+export const api = axios.create({
   baseURL: "http://localhost:3000",
   timeout: 10000,
   headers: {
@@ -10,7 +10,7 @@ export const apiClient = axios.create({
 });
 
 // Request interceptor to add auth token
-apiClient.interceptors.request.use(
+api.interceptors.request.use(
   (config) => {
     // Get the Supabase auth token from localStorage
     const token = localStorage.getItem("sb-uokbfbxpadivnvjnlhhx-auth-token");
@@ -27,7 +27,7 @@ apiClient.interceptors.request.use(
 );
 
 // Response interceptor for error handling
-apiClient.interceptors.response.use(
+api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
