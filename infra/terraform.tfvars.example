@@ -1,0 +1,32 @@
+# AWS Configuration
+aws_region = "us-west-2"
+
+# Project Configuration
+project_name = "reel-farm"
+
+# Network Configuration
+vpc_cidr            = "10.0.0.0/16"
+public_subnet_cidr  = "10.0.1.0/24"
+public_subnet_2_cidr = "10.0.2.0/24"
+
+# Application Configuration
+app_port          = 3000
+health_check_path = "/health"
+container_name    = "reel-farm-app"
+
+# Fargate Configuration
+fargate_cpu    = 256
+fargate_memory = 512
+desired_count  = 1
+
+# Container Environment Variables
+container_environment = [
+  {
+    name  = "NODE_ENV"
+    value = "production"
+  },
+  {
+    name  = "PORT"
+    value = "3000"
+  }
+]

@@ -1,0 +1,12 @@
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.lock.hcl
+.terraform/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.development
+.env.test
+.env.production
