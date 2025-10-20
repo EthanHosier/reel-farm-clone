@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -18,6 +18,8 @@ export default function Dashboard() {
       console.error("Error signing out:", error);
     }
   };
+
+  const accessToken = session?.access_token;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -48,6 +50,12 @@ export default function Dashboard() {
                   ? new Date(user.last_sign_in_at).toLocaleString()
                   : "N/A"}
               </p>
+              <p>
+                <strong>Access Token:</strong>
+              </p>
+              <div className="bg-gray-100 p-2 rounded border font-mono text-sm break-all">
+                {accessToken || "N/A"}
+              </div>
             </div>
           </CardContent>
         </Card>

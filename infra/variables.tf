@@ -83,3 +83,9 @@ variable "database_url" {
   type        = string
   sensitive   = true
 }
+
+variable "jwt_secret" {
+  description = "JWT secret"
+  type        = string
+  sensitive   = true
+}

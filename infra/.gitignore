@@ -10,3 +10,4 @@ terraform.tfstate.backup
 .env.development
 .env.test
 .env.production.env
+terraform.tfvars

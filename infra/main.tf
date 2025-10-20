@@ -249,6 +249,10 @@ resource "aws_ecs_task_definition" "main" {
         {
           name  = "DATABASE_URL"
           value = var.database_url
+        },
+        {
+          name  = "JWT_SECRET"
+          value = var.jwt_secret
         }
       ])
 
