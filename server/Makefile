@@ -20,7 +20,7 @@ generate: ## Generate SQLC code only (requires schema to exist)
 generate-api: ## Generate OpenAPI code
 	@echo "🔄 Generating OpenAPI code..."
 	@mkdir -p internal/api
-	@go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -config ../openapi/config.yaml ../openapi/api.yaml
+	@go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -config /openapi/config.yaml /openapi/api.yaml
 	@echo "✅ OpenAPI code generated"
 
 clean: ## Clean generated files
