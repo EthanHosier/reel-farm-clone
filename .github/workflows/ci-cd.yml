@@ -37,7 +37,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('server/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
 
@@ -46,9 +46,6 @@ jobs:
 
       - name: Verify dependencies
         run: go mod verify
-
-      - name: Generate API code
-        run: make generate-api
 
       - name: Run tests
         run: go test -v ./...
@@ -92,7 +89,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build a docker container and push it to ECR
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./server
+          docker build -f server/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest

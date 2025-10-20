@@ -4,9 +4,6 @@ FROM golang:1.25-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Install make
-RUN apk add --no-cache make
-
 # Copy go mod files
 COPY server/go.mod server/go.sum ./
 
@@ -15,10 +12,6 @@ RUN go mod download
 
 # Copy source code and OpenAPI files
 COPY server/ ./
-COPY openapi/ /openapi
-
-# Generate API code
-RUN make generate-api
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
