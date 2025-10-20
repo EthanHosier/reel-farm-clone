@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/ethanhosier/reel-farm/internal/api"
+	"github.com/ethanhosier/reel-farm/internal/context_keys"
 	"github.com/ethanhosier/reel-farm/internal/service"
-	"github.com/oapi-codegen/runtime/types"
+	"github.com/google/uuid"
 )
 
 // APIServer implements the generated ServerInterface
@@ -44,8 +45,32 @@ func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetUserAccount handles GET /users/{id}
-func (s *APIServer) GetUserAccount(w http.ResponseWriter, r *http.Request, id types.UUID) {
+// GetUserAccount handles GET /user
+func (s *APIServer) GetUserAccount(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from context (set by auth middleware)
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	// Convert string to UUID
+	id, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
 	// Get user account
 	userAccount, err := s.userService.GetUserAccount(r.Context(), id)
 	if err != nil {

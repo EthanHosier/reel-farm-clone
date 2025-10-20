@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,12 +11,17 @@ import (
 
 	"github.com/ethanhosier/reel-farm/internal/api"
 	"github.com/ethanhosier/reel-farm/internal/handler"
+	"github.com/ethanhosier/reel-farm/internal/middleware"
 	"github.com/ethanhosier/reel-farm/internal/repository"
 	"github.com/ethanhosier/reel-farm/internal/service"
 	"github.com/jackc/pgx/v5"
 )
 
 func main() {
+	// Parse command line flags
+	devMode := flag.Bool("dev", false, "Enable development mode with hardcoded user ID")
+	flag.Parse()
+
 	// Get port from environment variable or use default
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -37,9 +43,12 @@ func main() {
 	userService := service.NewUserService(userRepo)
 	apiServer := handler.NewAPIServer(userService)
 
-	// Create HTTP handler using generated code with custom error handler
+	// Create HTTP handler using generated code with auth middleware
 	handler := api.HandlerWithOptions(apiServer, api.StdHTTPServerOptions{
 		BaseRouter: http.NewServeMux(),
+		Middlewares: []api.MiddlewareFunc{
+			api.MiddlewareFunc(middleware.AuthMiddleware(*devMode)),
+		},
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -52,8 +61,11 @@ func main() {
 
 	// Start the server
 	fmt.Printf("🚀 Reel Farm server starting on port %s\n", port)
+	if *devMode {
+		fmt.Printf("🔧 Development mode enabled - using hardcoded user ID\n")
+	}
 	fmt.Printf("📡 Health check available at: http://localhost:%s/health\n", port)
-	fmt.Printf("👤 User endpoint available at: http://localhost:%s/users/{id}\n", port)
+	fmt.Printf("👤 User endpoint available at: http://localhost:%s/user\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
