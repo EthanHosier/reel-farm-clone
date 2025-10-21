@@ -2,11 +2,19 @@ import { OpenAPI } from "@/api/core/OpenAPI";
 import { HealthService } from "@/api/services/HealthService";
 import { UsersService } from "@/api/services/UsersService";
 
+// Get API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+console.log("API URL:", API_URL);
+
 // Configure OpenAPI with auth token injection
 const configureOpenAPI = () => {
+  OpenAPI.BASE = API_URL;
   OpenAPI.TOKEN = async () => {
     // Get the Supabase auth token from localStorage
-    const token = localStorage.getItem("sb-uokbfbxpadivnvjnlhhx-auth-token");
+    const token = JSON.parse(
+      localStorage.getItem("sb-uokbfbxpadivnvjnlhhx-auth-token") || "{}"
+    )?.access_token;
     return token || "";
   };
 };

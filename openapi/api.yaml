@@ -10,6 +10,8 @@ info:
 servers:
   - url: http://localhost:3000
     description: Local development server
+  - url: http://reel-farm-alb-1843168918.us-west-2.elb.amazonaws.com
+    description: Production server
 
 paths:
   /health:

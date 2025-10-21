@@ -5,6 +5,11 @@
 .env.test.local
 .env.production.local
 
+# Keep these environment files for different deployments
+!.env.development
+!.env.production
+!.env.staging
+
 # OS generated files
 .DS_Store
 .DS_Store?
