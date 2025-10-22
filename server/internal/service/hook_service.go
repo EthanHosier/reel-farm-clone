@@ -116,6 +116,32 @@ func (s *HookService) GenerateHooks(ctx context.Context, userID uuid.UUID, promp
 	return hookResults, nil
 }
 
+// GetHooks retrieves hooks for a user with pagination
+func (s *HookService) GetHooks(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]api.Hook, int64, error) {
+	// Get hooks from repository
+	dbHooks, err := s.hookRepo.GetHooksByUser(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get hooks: %w", err)
+	}
+
+	// Get total count
+	totalCount, err := s.hookRepo.GetUserHookCount(ctx, userID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get hook count: %w", err)
+	}
+
+	// Convert database hooks to API hooks
+	var hookResults []api.Hook
+	for _, dbHook := range dbHooks {
+		hookResults = append(hookResults, api.Hook{
+			Id:   dbHook.ID,
+			Text: dbHook.HookText,
+		})
+	}
+
+	return hookResults, totalCount, nil
+}
+
 func (s *HookService) doGenerateHooks(ctx context.Context, prompt string, numHooks int) ([]string, error) {
 	tmpl, err := template.New("hookPrompt").Parse(promptTemplate)
 	if err != nil {

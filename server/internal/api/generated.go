@@ -76,6 +76,15 @@ type GenerateHooksResponse struct {
 	Hooks []Hook `json:"hooks"`
 }
 
+// GetHooksResponse defines model for GetHooksResponse.
+type GetHooksResponse struct {
+	// Hooks Array of user's hooks
+	Hooks []Hook `json:"hooks"`
+
+	// TotalCount Total number of hooks for the user
+	TotalCount int `json:"total_count"`
+}
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Message string `json:"message"`
@@ -119,6 +128,15 @@ type UserAccount struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// GetHooksParams defines parameters for GetHooks.
+type GetHooksParams struct {
+	// Limit Number of hooks to return
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of hooks to skip
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
 // GenerateHooksJSONRequestBody defines body for GenerateHooks for application/json ContentType.
 type GenerateHooksJSONRequestBody = GenerateHooksRequest
 
@@ -133,6 +151,9 @@ type ServerInterface interface {
 	// Health check endpoint
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// Get user's hooks
+	// (GET /hooks)
+	GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams)
 	// Generate hooks for TikTok slideshow
 	// (POST /hooks/generate)
 	GenerateHooks(w http.ResponseWriter, r *http.Request)
@@ -164,6 +185,47 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHooks operation middleware
+func (siw *ServerInterfaceWrapper) GetHooks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetHooksParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHooks(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -405,6 +467,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
+	m.HandleFunc("GET "+options.BaseURL+"/hooks", wrapper.GetHooks)
 	m.HandleFunc("POST "+options.BaseURL+"/hooks/generate", wrapper.GenerateHooks)
 	m.HandleFunc("DELETE "+options.BaseURL+"/hooks/{hookId}", wrapper.DeleteHook)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)

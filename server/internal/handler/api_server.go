@@ -365,6 +365,65 @@ func (s *APIServer) GenerateHooks(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// GetHooks handles GET /hooks
+func (s *APIServer) GetHooks(w http.ResponseWriter, r *http.Request, params api.GetHooksParams) {
+	// Extract user ID from context
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	// Convert string to UUID
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
+	// Set default pagination values
+	limit := int32(20)
+	offset := int32(0)
+
+	if params.Limit != nil {
+		limit = int32(*params.Limit)
+	}
+	if params.Offset != nil {
+		offset = int32(*params.Offset)
+	}
+
+	// Get hooks from service
+	hooks, totalCount, err := s.hookService.GetHooks(r.Context(), userID, limit, offset)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "failed_to_get_hooks",
+			Message: "Failed to retrieve hooks",
+		})
+		return
+	}
+
+	// Return hooks
+	response := api.GetHooksResponse{
+		Hooks:      hooks,
+		TotalCount: int(totalCount),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // DeleteHook handles DELETE /hooks/{hookId}
 func (s *APIServer) DeleteHook(w http.ResponseWriter, r *http.Request, hookId openapi_types.UUID) {
 	// Extract user ID from context

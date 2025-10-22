@@ -12,9 +12,14 @@ export type { CreateCheckoutSessionRequest } from './models/CreateCheckoutSessio
 export type { CreateCustomerPortalRequest } from './models/CreateCustomerPortalRequest';
 export type { CustomerPortalResponse } from './models/CustomerPortalResponse';
 export type { ErrorResponse } from './models/ErrorResponse';
+export type { GenerateHooksRequest } from './models/GenerateHooksRequest';
+export type { GenerateHooksResponse } from './models/GenerateHooksResponse';
+export type { GetHooksResponse } from './models/GetHooksResponse';
 export type { HealthResponse } from './models/HealthResponse';
+export type { Hook } from './models/Hook';
 export type { UserAccount } from './models/UserAccount';
 
 export { HealthService } from './services/HealthService';
+export { HooksService } from './services/HooksService';
 export { SubscriptionsService } from './services/SubscriptionsService';
 export { UsersService } from './services/UsersService';
