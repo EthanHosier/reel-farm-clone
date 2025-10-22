@@ -89,3 +89,15 @@ variable "jwt_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "domain_name" {
+  description = "Domain name for SSL certificate (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "certificate_arn" {
+  description = "ARN of existing SSL certificate (optional)"
+  type        = string
+  default     = ""
+}

@@ -22,6 +22,10 @@ desired_count  = 1
 # Database Configuration
 database_url = "postgresql://postgres:password@db.project.supabase.co:5432/postgres"
 
+# SSL Configuration (optional)
+# domain_name = "api.yourdomain.com"
+# certificate_arn = "arn:aws:acm:us-west-2:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+
 # Container Environment Variables
 container_environment = [
   {

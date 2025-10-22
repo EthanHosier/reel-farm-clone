@@ -448,3 +448,82 @@ resource "aws_iam_role_policy_attachment" "ecs_task_s3_policy" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.s3_access.arn
 }
+
+# ACM Certificate for SSL
+resource "aws_acm_certificate" "main" {
+  count = var.domain_name != "" ? 1 : 0
+
+  domain_name       = var.domain_name
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name = "${var.project_name}-cert"
+  }
+}
+
+# CloudFront Distribution
+resource "aws_cloudfront_distribution" "main" {
+  origin {
+    domain_name = aws_lb.main.dns_name
+    origin_id   = "${var.project_name}-alb"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  enabled             = true
+  is_ipv6_enabled      = true
+  comment              = "${var.project_name} CloudFront distribution"
+  default_root_object  = "index.html"
+
+  # Use custom domain if provided
+  aliases = var.domain_name != "" ? [var.domain_name] : []
+
+  # Use SSL certificate if provided
+  viewer_certificate {
+    cloudfront_default_certificate = var.domain_name == "" ? true : false
+    acm_certificate_arn           = var.domain_name != "" ? aws_acm_certificate.main[0].arn : null
+    ssl_support_method            = var.domain_name != "" ? "sni-only" : null
+    minimum_protocol_version      = var.domain_name != "" ? "TLSv1.2_2021" : null
+  }
+
+  default_cache_behavior {
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "${var.project_name}-alb"
+
+    forwarded_values {
+      query_string = true
+      headers      = ["Host", "Authorization", "Content-Type"]
+
+      cookies {
+        forward = "all"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
+  }
+
+  price_class = "PriceClass_100"
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  tags = {
+    Name = "${var.project_name}-cloudfront"
+  }
+}
