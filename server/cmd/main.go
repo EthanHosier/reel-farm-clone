@@ -57,7 +57,12 @@ func main() {
 	userRepo := repository.NewUserRepository(pool)
 	userService := service.NewUserService(userRepo)
 	subscriptionService := service.NewSubscriptionService(userRepo)
-	apiServer := handler.NewAPIServer(userService, subscriptionService)
+
+	// Create LLM and Hook services
+	llmService := service.NewLLMService()
+	hookService := service.NewHookService(userRepo, llmService)
+
+	apiServer := handler.NewAPIServer(userService, subscriptionService, hookService)
 
 	// Create HTTP handler using generated code with auth middleware
 	apiHandler := api.HandlerWithOptions(apiServer, api.StdHTTPServerOptions{
@@ -94,6 +99,7 @@ func main() {
 	}
 	fmt.Printf("📡 Health check available at: http://localhost:%s/health\n", port)
 	fmt.Printf("👤 User endpoint available at: http://localhost:%s/user\n", port)
+	fmt.Printf("🎣 Hook generation available at: http://localhost:%s/hooks/generate\n", port)
 	fmt.Printf("🔗 Stripe webhook available at: http://localhost:%s/webhooks/stripe\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, mux))

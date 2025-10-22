@@ -15,13 +15,15 @@ import (
 type APIServer struct {
 	userService         *service.UserService
 	subscriptionService *service.SubscriptionService
+	hookService         *service.HookService
 }
 
 // NewAPIServer creates a new API server handler
-func NewAPIServer(userService *service.UserService, subscriptionService *service.SubscriptionService) *APIServer {
+func NewAPIServer(userService *service.UserService, subscriptionService *service.SubscriptionService, hookService *service.HookService) *APIServer {
 	return &APIServer{
 		userService:         userService,
 		subscriptionService: subscriptionService,
+		hookService:         hookService,
 	}
 }
 
@@ -276,6 +278,86 @@ func (s *APIServer) CreateCustomerPortalSession(w http.ResponseWriter, r *http.R
 	// Return portal URL
 	response := api.CustomerPortalResponse{
 		PortalUrl: portalURL,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GenerateHooks handles POST /hooks/generate
+func (s *APIServer) GenerateHooks(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from context
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	// Convert string to UUID
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
+	// Parse request body
+	var req api.GenerateHooksRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "Invalid request body",
+		})
+		return
+	}
+
+	// Validate request
+	if req.Prompt == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "missing_prompt",
+			Message: "prompt is required",
+		})
+		return
+	}
+
+	if req.NumHooks < 1 || req.NumHooks > 10 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_num_hooks",
+			Message: "num_hooks must be between 1 and 10",
+		})
+		return
+	}
+
+	// Generate hooks
+	hooks, err := s.hookService.GenerateHooks(r.Context(), userID, req.Prompt, int(req.NumHooks))
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "hook_generation_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Return hooks
+	response := api.GenerateHooksResponse{
+		Hooks: hooks,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

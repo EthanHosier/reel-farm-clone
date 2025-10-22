@@ -60,6 +60,21 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+// GenerateHooksRequest defines model for GenerateHooksRequest.
+type GenerateHooksRequest struct {
+	// NumHooks Number of hooks to generate
+	NumHooks int `json:"num_hooks"`
+
+	// Prompt The topic or theme for generating hooks
+	Prompt string `json:"prompt"`
+}
+
+// GenerateHooksResponse defines model for GenerateHooksResponse.
+type GenerateHooksResponse struct {
+	// Hooks Array of generated hooks
+	Hooks []string `json:"hooks"`
+}
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Message string `json:"message"`
@@ -94,6 +109,9 @@ type UserAccount struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// GenerateHooksJSONRequestBody defines body for GenerateHooks for application/json ContentType.
+type GenerateHooksJSONRequestBody = GenerateHooksRequest
+
 // CreateCheckoutSessionJSONRequestBody defines body for CreateCheckoutSession for application/json ContentType.
 type CreateCheckoutSessionJSONRequestBody = CreateCheckoutSessionRequest
 
@@ -105,6 +123,9 @@ type ServerInterface interface {
 	// Health check endpoint
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// Generate hooks for TikTok slideshow
+	// (POST /hooks/generate)
+	GenerateHooks(w http.ResponseWriter, r *http.Request)
 	// Create Stripe checkout session
 	// (POST /subscription/create-checkout-session)
 	CreateCheckoutSession(w http.ResponseWriter, r *http.Request)
@@ -130,6 +151,26 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GenerateHooks operation middleware
+func (siw *ServerInterfaceWrapper) GenerateHooks(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GenerateHooks(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -320,6 +361,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
+	m.HandleFunc("POST "+options.BaseURL+"/hooks/generate", wrapper.GenerateHooks)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
 	m.HandleFunc("GET "+options.BaseURL+"/user", wrapper.GetUserAccount)
