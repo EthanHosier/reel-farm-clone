@@ -24,7 +24,7 @@ func CORSMiddleware() func(http.Handler) http.Handler {
 		},
 		AllowedHeaders:   []string{"*"}, // Allow all headers for now
 		AllowCredentials: true,
-		Debug:            true, // Enable debug to see CORS logs
+		Debug:            false, // Enable debug to see CORS logs
 	})
 
 	return c.Handler
