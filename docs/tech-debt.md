@@ -8,6 +8,10 @@ For the github actions deploy, currently using my laptops administrator tokens -
 Define actual openapi error types for the different cases
 For the github actions, the health check is checking the alb url, not the cloudfront url
 
+## Stripe
+
+Race conditions during payment account creation
+
 ## Database
 
 Enable RLS

@@ -64,7 +64,8 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, userID 
 
 	// Create checkout session
 	params := &stripe.CheckoutSessionParams{
-		Customer: stripe.String(customerID),
+		Customer:          stripe.String(customerID),
+		ClientReferenceID: stripe.String(userID.String()), // Use user ID as reference
 		PaymentMethodTypes: stripe.StringSlice([]string{
 			"card",
 		}),
@@ -77,6 +78,11 @@ func (s *SubscriptionService) CreateCheckoutSession(ctx context.Context, userID 
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		SuccessURL: stripe.String(successURL),
 		CancelURL:  stripe.String(cancelURL),
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			Metadata: map[string]string{
+				"user_id": userID.String(), // Store user ID in subscription metadata
+			},
+		},
 	}
 
 	session, err := session.New(params)
@@ -135,4 +141,9 @@ func (s *SubscriptionService) GetSubscriptionByID(ctx context.Context, subscript
 		return nil, fmt.Errorf("failed to get subscription %s: %w", subscriptionID, err)
 	}
 	return subscription, nil
+}
+
+// GetUserAccount retrieves a user account by ID
+func (s *SubscriptionService) GetUserAccount(ctx context.Context, userID uuid.UUID) (*db.UserAccount, error) {
+	return s.userRepo.GetUserAccount(ctx, userID)
 }

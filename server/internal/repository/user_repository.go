@@ -7,8 +7,8 @@ import (
 
 	"github.com/ethanhosier/reel-farm/db"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // UserRepository handles user account operations
@@ -17,9 +17,9 @@ type UserRepository struct {
 }
 
 // NewUserRepository creates a new user repository
-func NewUserRepository(conn *pgx.Conn) *UserRepository {
+func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{
-		queries: db.New(conn),
+		queries: db.New(pool),
 	}
 }
 

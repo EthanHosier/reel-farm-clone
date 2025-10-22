@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethanhosier/reel-farm/internal/service"
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v78"
 	"github.com/stripe/stripe-go/v78/webhook"
 )
@@ -48,7 +49,10 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify webhook signature
-	event, err := webhook.ConstructEvent(body, r.Header.Get("Stripe-Signature"), webhookSecret)
+	// In webhook_handler.go, replace the webhook.ConstructEvent call with:
+	event, err := webhook.ConstructEventWithOptions(body, r.Header.Get("Stripe-Signature"), webhookSecret, webhook.ConstructEventOptions{
+		IgnoreAPIVersionMismatch: true,
+	})
 	if err != nil {
 		fmt.Printf("Webhook signature verification failed: %v\n", err)
 		http.Error(w, "Invalid signature", http.StatusBadRequest)
@@ -91,10 +95,27 @@ func (h *WebhookHandler) handleSubscriptionCreated(event stripe.Event) error {
 
 	fmt.Printf("Subscription created: %s for customer: %s\n", subscription.ID, subscription.Customer.ID)
 
-	// Find user by Stripe customer ID
-	userAccount, err := h.subscriptionService.GetUserByBillingCustomerID(context.Background(), subscription.Customer.ID)
+	// Get user ID from subscription metadata
+	userIDStr := ""
+	if subscription.Metadata != nil {
+		if val, exists := subscription.Metadata["user_id"]; exists {
+			userIDStr = val
+		}
+	}
+
+	if userIDStr == "" {
+		return fmt.Errorf("no user ID found in subscription metadata")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return fmt.Errorf("failed to find user by customer ID %s: %w", subscription.Customer.ID, err)
+		return fmt.Errorf("failed to parse user ID: %w", err)
+	}
+
+	// Get user account
+	userAccount, err := h.subscriptionService.GetUserAccount(context.Background(), userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user account: %w", err)
 	}
 
 	// Update user to 'pro' plan
@@ -106,13 +127,7 @@ func (h *WebhookHandler) handleSubscriptionCreated(event stripe.Event) error {
 		return fmt.Errorf("failed to update user plan: %w", err)
 	}
 
-	// Add 500 credits for the first month
-	err = h.subscriptionService.AddCreditsToUser(context.Background(), userAccount.ID, 500)
-	if err != nil {
-		return fmt.Errorf("failed to add credits: %w", err)
-	}
-
-	fmt.Printf("✅ User %s upgraded to pro plan with 500 credits\n", userAccount.ID)
+	fmt.Printf("✅ User %s upgraded to pro plan\n", userAccount.ID)
 	return nil
 }
 
@@ -125,10 +140,27 @@ func (h *WebhookHandler) handleSubscriptionUpdated(event stripe.Event) error {
 
 	fmt.Printf("Subscription updated: %s status: %s\n", subscription.ID, subscription.Status)
 
-	// Find user by Stripe customer ID
-	userAccount, err := h.subscriptionService.GetUserByBillingCustomerID(context.Background(), subscription.Customer.ID)
+	// Get user ID from subscription metadata
+	userIDStr := ""
+	if subscription.Metadata != nil {
+		if val, exists := subscription.Metadata["user_id"]; exists {
+			userIDStr = val
+		}
+	}
+
+	if userIDStr == "" {
+		return fmt.Errorf("no user ID found in subscription metadata")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return fmt.Errorf("failed to find user by customer ID %s: %w", subscription.Customer.ID, err)
+		return fmt.Errorf("failed to parse user ID: %w", err)
+	}
+
+	// Get user account
+	userAccount, err := h.subscriptionService.GetUserAccount(context.Background(), userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user account: %w", err)
 	}
 
 	// Handle different subscription statuses
@@ -181,10 +213,37 @@ func (h *WebhookHandler) handlePaymentSucceeded(event stripe.Event) error {
 
 	fmt.Printf("Payment succeeded for invoice: %s, customer: %s\n", invoice.ID, invoice.Customer.ID)
 
-	// Find user by Stripe customer ID
-	userAccount, err := h.subscriptionService.GetUserByBillingCustomerID(context.Background(), invoice.Customer.ID)
+	// Get user ID from client reference ID (from the subscription)
+	if invoice.Subscription == nil {
+		return fmt.Errorf("no subscription found in invoice")
+	}
+
+	// Get subscription to access metadata
+	subscription, err := h.subscriptionService.GetSubscriptionByID(context.Background(), invoice.Subscription.ID)
 	if err != nil {
-		return fmt.Errorf("failed to find user by customer ID %s: %w", invoice.Customer.ID, err)
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	userIDStr := ""
+	if subscription.Metadata != nil {
+		if val, exists := subscription.Metadata["user_id"]; exists {
+			userIDStr = val
+		}
+	}
+
+	if userIDStr == "" {
+		return fmt.Errorf("no user ID found in subscription metadata")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse user ID: %w", err)
+	}
+
+	// Get user account
+	userAccount, err := h.subscriptionService.GetUserAccount(context.Background(), userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user account: %w", err)
 	}
 
 	// Add 500 credits for monthly subscription
@@ -194,16 +253,10 @@ func (h *WebhookHandler) handlePaymentSucceeded(event stripe.Event) error {
 	}
 
 	// Update plan end date to next billing period
-	if invoice.Subscription != nil {
-		// Get subscription details to update plan end date
-		subscription, err := h.subscriptionService.GetSubscriptionByID(context.Background(), invoice.Subscription.ID)
-		if err == nil && subscription != nil {
-			planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
-			err = h.subscriptionService.UpdateUserPlan(context.Background(), userAccount.ID, "pro", time.Now(), &planEndsAt)
-			if err != nil {
-				fmt.Printf("Warning: failed to update plan end date: %v\n", err)
-			}
-		}
+	planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
+	err = h.subscriptionService.UpdateUserPlan(context.Background(), userAccount.ID, "pro", time.Now(), &planEndsAt)
+	if err != nil {
+		fmt.Printf("Warning: failed to update plan end date: %v\n", err)
 	}
 
 	fmt.Printf("✅ User %s received 500 monthly credits\n", userAccount.ID)

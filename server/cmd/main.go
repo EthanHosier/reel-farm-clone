@@ -15,7 +15,7 @@ import (
 	"github.com/ethanhosier/reel-farm/internal/middleware"
 	"github.com/ethanhosier/reel-farm/internal/repository"
 	"github.com/ethanhosier/reel-farm/internal/service"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
@@ -47,13 +47,14 @@ func main() {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	conn, err := pgx.Connect(context.Background(), dbUrl)
+	pool, err := pgxpool.New(context.Background(), dbUrl)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal("Failed to create connection pool:", err)
 	}
+	defer pool.Close()
 
 	// Create services and handlers
-	userRepo := repository.NewUserRepository(conn)
+	userRepo := repository.NewUserRepository(pool)
 	userService := service.NewUserService(userRepo)
 	subscriptionService := service.NewSubscriptionService(userRepo)
 	apiServer := handler.NewAPIServer(userService, subscriptionService)
