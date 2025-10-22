@@ -19,4 +19,4 @@
 ehthumbs.db
 Thumbs.db
 
-node_modules/server/.env
+node_modules

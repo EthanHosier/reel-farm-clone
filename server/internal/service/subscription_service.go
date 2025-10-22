@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethanhosier/reel-farm/db"
 	"github.com/ethanhosier/reel-farm/internal/repository"
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v78"
@@ -119,21 +118,6 @@ func (s *SubscriptionService) CreateCustomerPortalSession(ctx context.Context, u
 	return session.URL, nil
 }
 
-// GetUserByBillingCustomerID retrieves a user by Stripe customer ID
-func (s *SubscriptionService) GetUserByBillingCustomerID(ctx context.Context, customerID string) (*db.UserAccount, error) {
-	return s.userRepo.GetUserByBillingCustomerID(ctx, customerID)
-}
-
-// UpdateUserPlan updates a user's subscription plan
-func (s *SubscriptionService) UpdateUserPlan(ctx context.Context, userID uuid.UUID, plan string, planStartedAt time.Time, planEndsAt *time.Time) error {
-	return s.userRepo.UpdateUserPlan(ctx, userID, plan, planStartedAt, planEndsAt)
-}
-
-// AddCreditsToUser adds credits to a user's account
-func (s *SubscriptionService) AddCreditsToUser(ctx context.Context, userID uuid.UUID, credits int32) error {
-	return s.userRepo.AddCreditsToUser(ctx, userID, credits)
-}
-
 // GetSubscriptionByID retrieves a Stripe subscription by ID
 func (s *SubscriptionService) GetSubscriptionByID(ctx context.Context, subscriptionID string) (*stripe.Subscription, error) {
 	subscription, err := subscription.Get(subscriptionID, nil)
@@ -143,7 +127,123 @@ func (s *SubscriptionService) GetSubscriptionByID(ctx context.Context, subscript
 	return subscription, nil
 }
 
-// GetUserAccount retrieves a user account by ID
-func (s *SubscriptionService) GetUserAccount(ctx context.Context, userID uuid.UUID) (*db.UserAccount, error) {
-	return s.userRepo.GetUserAccount(ctx, userID)
+// ProcessSubscriptionCreated handles subscription creation business logic
+func (s *SubscriptionService) ProcessSubscriptionCreated(ctx context.Context, subscription *stripe.Subscription) error {
+	// Get user ID from subscription metadata
+	userIDStr := ""
+	if subscription.Metadata != nil {
+		if val, exists := subscription.Metadata["user_id"]; exists {
+			userIDStr = val
+		}
+	}
+
+	if userIDStr == "" {
+		return fmt.Errorf("no user ID found in subscription metadata")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse user ID: %w", err)
+	}
+
+	// Update user to 'pro' plan
+	planStartedAt := time.Unix(subscription.Created, 0)
+	planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
+
+	err = s.userRepo.UpdateUserPlan(ctx, userID, "pro", planStartedAt, &planEndsAt)
+	if err != nil {
+		return fmt.Errorf("failed to update user plan: %w", err)
+	}
+
+	return nil
+}
+
+// ProcessSubscriptionUpdated handles subscription update business logic
+func (s *SubscriptionService) ProcessSubscriptionUpdated(ctx context.Context, subscription *stripe.Subscription) error {
+	// Get user ID from subscription metadata
+	userIDStr := ""
+	if subscription.Metadata != nil {
+		if val, exists := subscription.Metadata["user_id"]; exists {
+			userIDStr = val
+		}
+	}
+
+	if userIDStr == "" {
+		return fmt.Errorf("no user ID found in subscription metadata")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse user ID: %w", err)
+	}
+
+	// Handle different subscription statuses
+	switch subscription.Status {
+	case stripe.SubscriptionStatusActive:
+		// Ensure user is on pro plan
+		planStartedAt := time.Unix(subscription.Created, 0)
+		planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
+
+		err = s.userRepo.UpdateUserPlan(ctx, userID, "pro", planStartedAt, &planEndsAt)
+		if err != nil {
+			return fmt.Errorf("failed to update user plan to pro: %w", err)
+		}
+
+	case stripe.SubscriptionStatusCanceled, stripe.SubscriptionStatusUnpaid, stripe.SubscriptionStatusPastDue:
+		// Downgrade to free plan but keep credits
+		err = s.userRepo.UpdateUserPlan(ctx, userID, "free", time.Now(), nil)
+		if err != nil {
+			return fmt.Errorf("failed to downgrade user to free plan: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ProcessPaymentSucceeded handles payment success business logic
+func (s *SubscriptionService) ProcessPaymentSucceeded(ctx context.Context, invoice *stripe.Invoice) error {
+	// Get subscription to access metadata
+	if invoice.Subscription == nil {
+		return fmt.Errorf("no subscription found in invoice")
+	}
+
+	subscription, err := s.GetSubscriptionByID(ctx, invoice.Subscription.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	// Get user ID from subscription metadata
+	userIDStr := ""
+	if subscription.Metadata != nil {
+		if val, exists := subscription.Metadata["user_id"]; exists {
+			userIDStr = val
+		}
+	}
+
+	if userIDStr == "" {
+		return fmt.Errorf("no user ID found in subscription metadata")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse user ID: %w", err)
+	}
+
+	// Execute credit addition and plan update in a transaction
+	return s.userRepo.WithTransaction(ctx, func(txRepo *repository.UserRepository) error {
+		// Add 500 credits for monthly subscription
+		err := txRepo.AddCreditsToUser(ctx, userID, 500)
+		if err != nil {
+			return fmt.Errorf("failed to add monthly credits: %w", err)
+		}
+
+		// Update plan end date to next billing period
+		planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
+		err = txRepo.UpdateUserPlan(ctx, userID, "pro", time.Now(), &planEndsAt)
+		if err != nil {
+			return fmt.Errorf("failed to update plan end date: %w", err)
+		}
+
+		return nil
+	})
 }

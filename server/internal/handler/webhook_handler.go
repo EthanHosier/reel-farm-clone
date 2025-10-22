@@ -7,10 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/ethanhosier/reel-farm/internal/service"
-	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v78"
 	"github.com/stripe/stripe-go/v78/webhook"
 )
@@ -95,39 +93,13 @@ func (h *WebhookHandler) handleSubscriptionCreated(event stripe.Event) error {
 
 	fmt.Printf("Subscription created: %s for customer: %s\n", subscription.ID, subscription.Customer.ID)
 
-	// Get user ID from subscription metadata
-	userIDStr := ""
-	if subscription.Metadata != nil {
-		if val, exists := subscription.Metadata["user_id"]; exists {
-			userIDStr = val
-		}
-	}
-
-	if userIDStr == "" {
-		return fmt.Errorf("no user ID found in subscription metadata")
-	}
-
-	userID, err := uuid.Parse(userIDStr)
+	// Process the subscription creation business logic
+	err := h.subscriptionService.ProcessSubscriptionCreated(context.Background(), &subscription)
 	if err != nil {
-		return fmt.Errorf("failed to parse user ID: %w", err)
+		return fmt.Errorf("failed to process subscription creation: %w", err)
 	}
 
-	// Get user account
-	userAccount, err := h.subscriptionService.GetUserAccount(context.Background(), userID)
-	if err != nil {
-		return fmt.Errorf("failed to get user account: %w", err)
-	}
-
-	// Update user to 'pro' plan
-	planStartedAt := time.Unix(subscription.Created, 0)
-	planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
-
-	err = h.subscriptionService.UpdateUserPlan(context.Background(), userAccount.ID, "pro", planStartedAt, &planEndsAt)
-	if err != nil {
-		return fmt.Errorf("failed to update user plan: %w", err)
-	}
-
-	fmt.Printf("✅ User %s upgraded to pro plan\n", userAccount.ID)
+	fmt.Printf("✅ Subscription %s processed successfully\n", subscription.ID)
 	return nil
 }
 
@@ -140,51 +112,13 @@ func (h *WebhookHandler) handleSubscriptionUpdated(event stripe.Event) error {
 
 	fmt.Printf("Subscription updated: %s status: %s\n", subscription.ID, subscription.Status)
 
-	// Get user ID from subscription metadata
-	userIDStr := ""
-	if subscription.Metadata != nil {
-		if val, exists := subscription.Metadata["user_id"]; exists {
-			userIDStr = val
-		}
-	}
-
-	if userIDStr == "" {
-		return fmt.Errorf("no user ID found in subscription metadata")
-	}
-
-	userID, err := uuid.Parse(userIDStr)
+	// Process the subscription update business logic
+	err := h.subscriptionService.ProcessSubscriptionUpdated(context.Background(), &subscription)
 	if err != nil {
-		return fmt.Errorf("failed to parse user ID: %w", err)
+		return fmt.Errorf("failed to process subscription update: %w", err)
 	}
 
-	// Get user account
-	userAccount, err := h.subscriptionService.GetUserAccount(context.Background(), userID)
-	if err != nil {
-		return fmt.Errorf("failed to get user account: %w", err)
-	}
-
-	// Handle different subscription statuses
-	switch subscription.Status {
-	case stripe.SubscriptionStatusActive:
-		// Ensure user is on pro plan
-		planStartedAt := time.Unix(subscription.Created, 0)
-		planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
-
-		err = h.subscriptionService.UpdateUserPlan(context.Background(), userAccount.ID, "pro", planStartedAt, &planEndsAt)
-		if err != nil {
-			return fmt.Errorf("failed to update user plan to pro: %w", err)
-		}
-		fmt.Printf("✅ User %s subscription reactivated\n", userAccount.ID)
-
-	case stripe.SubscriptionStatusCanceled, stripe.SubscriptionStatusUnpaid, stripe.SubscriptionStatusPastDue:
-		// Downgrade to free plan but keep credits
-		err = h.subscriptionService.UpdateUserPlan(context.Background(), userAccount.ID, "free", time.Now(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to downgrade user to free plan: %w", err)
-		}
-		fmt.Printf("⚠️ User %s subscription canceled/downgraded to free\n", userAccount.ID)
-	}
-
+	fmt.Printf("✅ Subscription %s updated successfully\n", subscription.ID)
 	return nil
 }
 
@@ -213,53 +147,13 @@ func (h *WebhookHandler) handlePaymentSucceeded(event stripe.Event) error {
 
 	fmt.Printf("Payment succeeded for invoice: %s, customer: %s\n", invoice.ID, invoice.Customer.ID)
 
-	// Get user ID from client reference ID (from the subscription)
-	if invoice.Subscription == nil {
-		return fmt.Errorf("no subscription found in invoice")
-	}
-
-	// Get subscription to access metadata
-	subscription, err := h.subscriptionService.GetSubscriptionByID(context.Background(), invoice.Subscription.ID)
+	// Process the payment success business logic
+	err := h.subscriptionService.ProcessPaymentSucceeded(context.Background(), &invoice)
 	if err != nil {
-		return fmt.Errorf("failed to get subscription: %w", err)
+		return fmt.Errorf("failed to process payment success: %w", err)
 	}
 
-	userIDStr := ""
-	if subscription.Metadata != nil {
-		if val, exists := subscription.Metadata["user_id"]; exists {
-			userIDStr = val
-		}
-	}
-
-	if userIDStr == "" {
-		return fmt.Errorf("no user ID found in subscription metadata")
-	}
-
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return fmt.Errorf("failed to parse user ID: %w", err)
-	}
-
-	// Get user account
-	userAccount, err := h.subscriptionService.GetUserAccount(context.Background(), userID)
-	if err != nil {
-		return fmt.Errorf("failed to get user account: %w", err)
-	}
-
-	// Add 500 credits for monthly subscription
-	err = h.subscriptionService.AddCreditsToUser(context.Background(), userAccount.ID, 500)
-	if err != nil {
-		return fmt.Errorf("failed to add monthly credits: %w", err)
-	}
-
-	// Update plan end date to next billing period
-	planEndsAt := time.Unix(subscription.CurrentPeriodEnd, 0)
-	err = h.subscriptionService.UpdateUserPlan(context.Background(), userAccount.ID, "pro", time.Now(), &planEndsAt)
-	if err != nil {
-		fmt.Printf("Warning: failed to update plan end date: %v\n", err)
-	}
-
-	fmt.Printf("✅ User %s received 500 monthly credits\n", userAccount.ID)
+	fmt.Printf("✅ Payment for invoice %s processed successfully\n", invoice.ID)
 	return nil
 }
 

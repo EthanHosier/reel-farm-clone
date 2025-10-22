@@ -14,12 +14,14 @@ import (
 // UserRepository handles user account operations
 type UserRepository struct {
 	queries *db.Queries
+	pool    *pgxpool.Pool
 }
 
 // NewUserRepository creates a new user repository
 func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{
 		queries: db.New(pool),
+		pool:    pool,
 	}
 }
 
@@ -88,4 +90,25 @@ func (r *UserRepository) AddCreditsToUser(ctx context.Context, id uuid.UUID, cre
 		return fmt.Errorf("failed to add credits to user: %w", err)
 	}
 	return nil
+}
+
+// WithTransaction executes a function within a database transaction
+func (r *UserRepository) WithTransaction(ctx context.Context, fn func(*UserRepository) error) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx) // Always rollback unless committed
+
+	// Create a new repository instance with the transaction
+	txRepo := &UserRepository{
+		queries: db.New(tx), // SQLC works with transactions
+		pool:    r.pool,     // Keep reference to pool for potential nested transactions
+	}
+
+	if err := fn(txRepo); err != nil {
+		return err // Transaction will be rolled back via defer
+	}
+
+	return tx.Commit(ctx)
 }
