@@ -55,7 +55,8 @@ func main() {
 	// Create services and handlers
 	userRepo := repository.NewUserRepository(conn)
 	userService := service.NewUserService(userRepo)
-	apiServer := handler.NewAPIServer(userService)
+	subscriptionService := service.NewSubscriptionService(userRepo)
+	apiServer := handler.NewAPIServer(userService, subscriptionService)
 
 	// Create HTTP handler using generated code with auth middleware
 	apiHandler := api.HandlerWithOptions(apiServer, api.StdHTTPServerOptions{
@@ -73,8 +74,17 @@ func main() {
 		},
 	})
 
-	// Wrap the API handler with CORS middleware
-	handler := middleware.CORSMiddleware()(apiHandler)
+	// Create webhook handler
+	webhookHandler := handler.NewWebhookHandler(subscriptionService)
+
+	// Create main router
+	mux := http.NewServeMux()
+
+	// Add API routes (with auth middleware)
+	mux.Handle("/", middleware.CORSMiddleware()(apiHandler))
+
+	// Add webhook routes (no auth middleware, but with CORS)
+	mux.Handle("/webhooks/stripe", middleware.CORSMiddleware()(webhookHandler))
 
 	// Start the server
 	fmt.Printf("🚀 Reel Farm server starting on port %s\n", port)
@@ -83,6 +93,7 @@ func main() {
 	}
 	fmt.Printf("📡 Health check available at: http://localhost:%s/health\n", port)
 	fmt.Printf("👤 User endpoint available at: http://localhost:%s/user\n", port)
+	fmt.Printf("🔗 Stripe webhook available at: http://localhost:%s/webhooks/stripe\n", port)
 
-	log.Fatal(http.ListenAndServe(":"+port, handler))
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

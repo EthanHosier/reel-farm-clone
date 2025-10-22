@@ -1,5 +1,6 @@
 import { OpenAPI } from "@/api/core/OpenAPI";
 import { HealthService } from "@/api/services/HealthService";
+import { SubscriptionsService } from "@/api/services/SubscriptionsService";
 import { UsersService } from "@/api/services/UsersService";
 
 // Get API URL from environment variable
@@ -26,7 +27,15 @@ configureOpenAPI();
 export const api = {
   health: HealthService,
   users: UsersService,
+  subscriptions: SubscriptionsService,
 };
 
 // Re-export types for convenience
-export type { HealthResponse, UserAccount } from "@/api";
+export type {
+  HealthResponse,
+  UserAccount,
+  CreateCheckoutSessionRequest,
+  CreateCustomerPortalRequest,
+  CheckoutSessionResponse,
+  CustomerPortalResponse,
+} from "@/api";

@@ -18,6 +18,36 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// CheckoutSessionResponse defines model for CheckoutSessionResponse.
+type CheckoutSessionResponse struct {
+	// CheckoutUrl Stripe checkout session URL
+	CheckoutUrl string `json:"checkout_url"`
+}
+
+// CreateCheckoutSessionRequest defines model for CreateCheckoutSessionRequest.
+type CreateCheckoutSessionRequest struct {
+	// CancelUrl URL to redirect to if payment is canceled
+	CancelUrl string `json:"cancel_url"`
+
+	// PriceId Stripe price ID for the subscription
+	PriceId string `json:"price_id"`
+
+	// SuccessUrl URL to redirect to after successful payment
+	SuccessUrl string `json:"success_url"`
+}
+
+// CreateCustomerPortalRequest defines model for CreateCustomerPortalRequest.
+type CreateCustomerPortalRequest struct {
+	// ReturnUrl URL to redirect to after managing subscription
+	ReturnUrl string `json:"return_url"`
+}
+
+// CustomerPortalResponse defines model for CustomerPortalResponse.
+type CustomerPortalResponse struct {
+	// PortalUrl Stripe customer portal URL
+	PortalUrl string `json:"portal_url"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	// Details Additional error details
@@ -61,11 +91,23 @@ type UserAccount struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// CreateCheckoutSessionJSONRequestBody defines body for CreateCheckoutSession for application/json ContentType.
+type CreateCheckoutSessionJSONRequestBody = CreateCheckoutSessionRequest
+
+// CreateCustomerPortalSessionJSONRequestBody defines body for CreateCustomerPortalSession for application/json ContentType.
+type CreateCustomerPortalSessionJSONRequestBody = CreateCustomerPortalRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Health check endpoint
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// Create Stripe checkout session
+	// (POST /subscription/create-checkout-session)
+	CreateCheckoutSession(w http.ResponseWriter, r *http.Request)
+	// Create customer portal session
+	// (POST /subscription/customer-portal)
+	CreateCustomerPortalSession(w http.ResponseWriter, r *http.Request)
 	// Get current user account
 	// (GET /user)
 	GetUserAccount(w http.ResponseWriter, r *http.Request)
@@ -85,6 +127,46 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCheckoutSession operation middleware
+func (siw *ServerInterfaceWrapper) CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCheckoutSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCustomerPortalSession operation middleware
+func (siw *ServerInterfaceWrapper) CreateCustomerPortalSession(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCustomerPortalSession(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -235,6 +317,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
+	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
+	m.HandleFunc("POST "+options.BaseURL+"/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
 	m.HandleFunc("GET "+options.BaseURL+"/user", wrapper.GetUserAccount)
 
 	return m

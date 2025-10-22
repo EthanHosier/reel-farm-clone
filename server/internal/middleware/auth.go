@@ -24,7 +24,9 @@ func AuthMiddleware(noAuth bool) func(http.Handler) http.Handler {
 			// No-auth mode: use hardcoded user ID (for development/testing)
 			if noAuth {
 				userID := "65a950f6-a3b0-4be2-824a-b99051d5a62f"
+				email := "test@example.com"
 				ctx := context_keys.SetUserID(r.Context(), userID)
+				ctx = context_keys.SetUserEmail(ctx, email)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
@@ -88,8 +90,21 @@ func AuthMiddleware(noAuth bool) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Add user ID to context
+			// Extract email from token claims
+			email, ok := claims["email"].(string)
+			if !ok {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnauthorized)
+				json.NewEncoder(w).Encode(api.ErrorResponse{
+					Error:   "unauthorized",
+					Message: "Email not found in token",
+				})
+				return
+			}
+
+			// Add user ID and email to context
 			ctx := context_keys.SetUserID(r.Context(), userID)
+			ctx = context_keys.SetUserEmail(ctx, email)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

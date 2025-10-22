@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { useHealth } from "./queries/useHealth";
 import { useUser } from "./queries/useUser";
+import { api } from "@/lib/api";
+import { useState } from "react";
 
 export default function Dashboard() {
   const { user, session, signOut } = useAuth();
@@ -23,11 +25,51 @@ export default function Dashboard() {
     error: userError,
   } = useUser();
 
+  // Subscription state
+  const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
+  const [isCreatingPortal, setIsCreatingPortal] = useState(false);
+
   const handleSignOut = async () => {
     try {
       await signOut();
     } catch (error) {
       console.error("Error signing out:", error);
+    }
+  };
+
+  const handleUpgradeToPro = async () => {
+    setIsCreatingCheckout(true);
+    try {
+      const response = await api.subscriptions.createCheckoutSession({
+        price_id: "price_1SKOuPLa4pEqShgojlivZTLc", // Your Stripe price ID
+        success_url: `${window.location.origin}/dashboard?success=true`,
+        cancel_url: `${window.location.origin}/dashboard?canceled=true`,
+      });
+
+      // Redirect to Stripe Checkout
+      window.location.href = response.checkout_url;
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      alert("Failed to create checkout session. Please try again.");
+    } finally {
+      setIsCreatingCheckout(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setIsCreatingPortal(true);
+    try {
+      const response = await api.subscriptions.createCustomerPortalSession({
+        return_url: `${window.location.origin}/dashboard`,
+      });
+
+      // Redirect to Stripe Customer Portal
+      window.location.href = response.portal_url;
+    } catch (error) {
+      console.error("Error creating customer portal session:", error);
+      alert("Failed to open customer portal. Please try again.");
+    } finally {
+      setIsCreatingPortal(false);
     }
   };
 
@@ -122,6 +164,9 @@ export default function Dashboard() {
                     <strong>Plan:</strong> {userAccount.plan}
                   </p>
                   <p>
+                    <strong>Credits:</strong> {userAccount.credits || 0}
+                  </p>
+                  <p>
                     <strong>Plan Started:</strong>{" "}
                     {new Date(userAccount.plan_started_at).toLocaleDateString()}
                   </p>
@@ -137,6 +182,62 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Subscription Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription</CardTitle>
+              <CardDescription>
+                Upgrade to Pro for more credits and features
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg border">
+                  <h3 className="font-semibold text-lg mb-2">Reel Farm Pro</h3>
+                  <ul className="space-y-1 text-sm">
+                    <li>• 500 credits per month</li>
+                    <li>• Credits never expire</li>
+                    <li>• Priority support</li>
+                    <li>• Advanced features</li>
+                  </ul>
+                  <div className="mt-3">
+                    <span className="text-2xl font-bold">£0.00</span>
+                    <span className="text-gray-600">/month</span>
+                  </div>
+                </div>
+
+                {userAccount?.plan === "free" ? (
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleUpgradeToPro}
+                    disabled={isCreatingCheckout}
+                  >
+                    {isCreatingCheckout
+                      ? "Creating Checkout..."
+                      : "Upgrade to Pro"}
+                  </Button>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-green-600 font-medium">
+                      ✓ You're on the Pro plan!
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-2"
+                      onClick={handleManageSubscription}
+                      disabled={isCreatingPortal}
+                    >
+                      {isCreatingPortal
+                        ? "Opening Portal..."
+                        : "Manage Subscription"}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

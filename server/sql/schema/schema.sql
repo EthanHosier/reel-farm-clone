@@ -158,8 +158,17 @@ CREATE TABLE public.user_accounts (
     billing_customer_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    credits integer DEFAULT 100 NOT NULL,
+    CONSTRAINT user_accounts_credits_check CHECK ((credits >= 0)),
     CONSTRAINT user_accounts_plan_check CHECK ((plan = ANY (ARRAY['free'::text, 'pro'::text, 'enterprise'::text])))
 );
+
+
+--
+-- Name: COLUMN user_accounts.credits; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_accounts.credits IS 'Number of credits available to the user (must be >= 0, default 100)';
 
 
 --

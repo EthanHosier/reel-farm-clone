@@ -24,4 +24,6 @@ type UserAccount struct {
 	BillingCustomerID *string            `json:"billing_customer_id"`
 	CreatedAt         time.Time          `json:"created_at"`
 	UpdatedAt         time.Time          `json:"updated_at"`
+	// Number of credits available to the user (must be >= 0, default 100)
+	Credits int32 `json:"credits"`
 }

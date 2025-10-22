@@ -7,12 +7,30 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const AddCreditsToUser = `-- name: AddCreditsToUser :exec
+UPDATE public.user_accounts 
+SET credits = credits + $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type AddCreditsToUserParams struct {
+	ID      uuid.UUID `json:"id"`
+	Credits int32     `json:"credits"`
+}
+
+func (q *Queries) AddCreditsToUser(ctx context.Context, arg *AddCreditsToUserParams) error {
+	_, err := q.db.Exec(ctx, AddCreditsToUser, arg.ID, arg.Credits)
+	return err
+}
+
 const GetUserAccount = `-- name: GetUserAccount :one
-SELECT id, plan, plan_started_at, plan_ends_at, billing_customer_id, created_at, updated_at FROM public.user_accounts
+SELECT id, plan, plan_started_at, plan_ends_at, billing_customer_id, created_at, updated_at, credits FROM public.user_accounts
 WHERE id = $1
 `
 
@@ -27,6 +45,67 @@ func (q *Queries) GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccoun
 		&i.BillingCustomerID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Credits,
 	)
 	return &i, err
+}
+
+const GetUserByBillingCustomerID = `-- name: GetUserByBillingCustomerID :one
+SELECT id, plan, plan_started_at, plan_ends_at, billing_customer_id, created_at, updated_at, credits FROM public.user_accounts
+WHERE billing_customer_id = $1
+`
+
+func (q *Queries) GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error) {
+	row := q.db.QueryRow(ctx, GetUserByBillingCustomerID, billingCustomerID)
+	var i UserAccount
+	err := row.Scan(
+		&i.ID,
+		&i.Plan,
+		&i.PlanStartedAt,
+		&i.PlanEndsAt,
+		&i.BillingCustomerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Credits,
+	)
+	return &i, err
+}
+
+const UpdateUserBillingCustomerID = `-- name: UpdateUserBillingCustomerID :exec
+UPDATE public.user_accounts 
+SET billing_customer_id = $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserBillingCustomerIDParams struct {
+	ID                uuid.UUID `json:"id"`
+	BillingCustomerID *string   `json:"billing_customer_id"`
+}
+
+func (q *Queries) UpdateUserBillingCustomerID(ctx context.Context, arg *UpdateUserBillingCustomerIDParams) error {
+	_, err := q.db.Exec(ctx, UpdateUserBillingCustomerID, arg.ID, arg.BillingCustomerID)
+	return err
+}
+
+const UpdateUserPlan = `-- name: UpdateUserPlan :exec
+UPDATE public.user_accounts 
+SET plan = $2, plan_started_at = $3, plan_ends_at = $4, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserPlanParams struct {
+	ID            uuid.UUID          `json:"id"`
+	Plan          string             `json:"plan"`
+	PlanStartedAt time.Time          `json:"plan_started_at"`
+	PlanEndsAt    pgtype.Timestamptz `json:"plan_ends_at"`
+}
+
+func (q *Queries) UpdateUserPlan(ctx context.Context, arg *UpdateUserPlanParams) error {
+	_, err := q.db.Exec(ctx, UpdateUserPlan,
+		arg.ID,
+		arg.Plan,
+		arg.PlanStartedAt,
+		arg.PlanEndsAt,
+	)
+	return err
 }
