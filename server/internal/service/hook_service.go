@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"text/template"
+
+	"github.com/ethanhosier/reel-farm/internal/repository"
+	"github.com/google/uuid"
 )
 
 const (
@@ -36,8 +39,8 @@ The number of hooks to generate is: {{.NumHooks}}
 )
 
 type HookService struct {
+	userRepo   *repository.UserRepository
 	llmService *LLMService
-	template   *template.Template
 }
 
 type HookTemplateData struct {
@@ -49,15 +52,50 @@ type HookResponse struct {
 	Hooks []string `json:"hooks"`
 }
 
-func NewHookService(llmService *LLMService) *HookService {
-	// Parse the template
-
+func NewHookService(userRepo *repository.UserRepository, llmService *LLMService) *HookService {
 	return &HookService{
+		userRepo:   userRepo,
 		llmService: llmService,
 	}
 }
 
-func (s *HookService) GenerateHooks(ctx context.Context, prompt string, numHooks int) ([]string, error) {
+// TODO: Add idempotency and race condition protection
+func (s *HookService) GenerateHooks(ctx context.Context, userID uuid.UUID, prompt string, numHooks int) ([]string, error) {
+	// Use transaction to atomically check and deduct credits
+	err := s.userRepo.WithTransaction(ctx, func(txRepo *repository.UserRepository) error {
+		// Check if user has enough credits
+		userAccount, err := txRepo.GetUserAccount(ctx, userID)
+		if err != nil {
+			return fmt.Errorf("failed to get user account: %w", err)
+		}
+
+		if userAccount.Credits < creditCost {
+			return fmt.Errorf("insufficient credits: have %d, need %d", userAccount.Credits, creditCost)
+		}
+
+		// Remove credits
+		err = txRepo.RemoveCreditsFromUser(ctx, userID, creditCost)
+		if err != nil {
+			return fmt.Errorf("failed to remove credits: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		_ = s.userRepo.AddCreditsToUser(ctx, userID, creditCost)
+		return nil, fmt.Errorf("failed to deduct credits: %w", err)
+	}
+
+	hooks, err := s.doGenerateHooks(ctx, prompt, numHooks)
+	if err != nil {
+		_ = s.userRepo.AddCreditsToUser(ctx, userID, creditCost)
+		return nil, fmt.Errorf("failed to generate hooks: %w", err)
+	}
+
+	return hooks, nil
+}
+
+func (s *HookService) doGenerateHooks(ctx context.Context, prompt string, numHooks int) ([]string, error) {
 	tmpl, err := template.New("hookPrompt").Parse(promptTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template: %w", err)

@@ -8,6 +8,7 @@ For the github actions deploy, currently using my laptops administrator tokens -
 Define actual openapi error types for the different cases
 For the github actions, the health check is checking the alb url, not the cloudfront url
 Am I using the transactions correctly for the use repo sqlc?
+Add idempotency and race condition protection for spending credits
 
 ## Stripe
 
