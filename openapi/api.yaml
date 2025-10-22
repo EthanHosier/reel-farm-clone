@@ -183,6 +183,7 @@ components:
         - id
         - plan
         - plan_started_at
+        - credits
         - created_at
         - updated_at
       properties:
@@ -206,6 +207,11 @@ components:
           nullable: true
           description: When the current plan ends (null for free plans)
           example: "2024-12-31T23:59:59Z"
+        credits:
+          type: integer
+          minimum: 0
+          description: Number of credits available to the user
+          example: 100
         billing_customer_id:
           type: string
           nullable: true

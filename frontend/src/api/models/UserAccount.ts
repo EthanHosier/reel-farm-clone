@@ -20,6 +20,10 @@ export type UserAccount = {
      */
     plan_ends_at?: string | null;
     /**
+     * Number of credits available to the user
+     */
+    credits: number;
+    /**
      * External billing system customer ID
      */
     billing_customer_id?: string | null;

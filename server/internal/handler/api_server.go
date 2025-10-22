@@ -98,6 +98,7 @@ func (s *APIServer) GetUserAccount(w http.ResponseWriter, r *http.Request) {
 		Plan:              userAccount.Plan,
 		PlanStartedAt:     userAccount.PlanStartedAt,
 		PlanEndsAt:        planEndsAt,
+		Credits:           int(userAccount.Credits),
 		BillingCustomerId: userAccount.BillingCustomerID,
 		CreatedAt:         userAccount.CreatedAt,
 		UpdatedAt:         userAccount.UpdatedAt,

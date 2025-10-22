@@ -75,6 +75,9 @@ type UserAccount struct {
 	// CreatedAt When the account was created
 	CreatedAt time.Time `json:"created_at"`
 
+	// Credits Number of credits available to the user
+	Credits int `json:"credits"`
+
 	// Id Unique identifier for the user account
 	Id openapi_types.UUID `json:"id"`
 
