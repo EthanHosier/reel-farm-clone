@@ -12,6 +12,7 @@ func CORSMiddleware() func(http.Handler) http.Handler {
 		AllowedOrigins: []string{
 			"http://localhost:5173", // Vite dev server
 			"http://localhost:3000", // Backend (for self-requests)
+			"https://reel-farm-clone-frontend.vercel.app/",
 		},
 		AllowedMethods: []string{
 			http.MethodGet,
