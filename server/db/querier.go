@@ -14,6 +14,7 @@ type Querier interface {
 	AddCreditsToUser(ctx context.Context, arg *AddCreditsToUserParams) error
 	GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccount, error)
 	GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error)
+	RemoveCreditsFromUser(ctx context.Context, arg *RemoveCreditsFromUserParams) error
 	UpdateUserBillingCustomerID(ctx context.Context, arg *UpdateUserBillingCustomerIDParams) error
 	UpdateUserPlan(ctx context.Context, arg *UpdateUserPlanParams) error
 }

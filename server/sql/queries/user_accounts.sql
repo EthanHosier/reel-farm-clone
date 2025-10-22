@@ -20,3 +20,8 @@ WHERE id = $1;
 UPDATE public.user_accounts 
 SET credits = credits + $2, updated_at = NOW()
 WHERE id = $1;
+
+-- name: RemoveCreditsFromUser :exec
+UPDATE public.user_accounts
+SET credits = credits - $2, updated_at = NOW()
+WHERE id = $1;

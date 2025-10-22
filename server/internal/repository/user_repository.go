@@ -25,6 +25,27 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	}
 }
 
+// WithTransaction executes a function within a database transaction
+func (r *UserRepository) WithTransaction(ctx context.Context, fn func(*UserRepository) error) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx) // Always rollback unless committed
+
+	// Create a new repository instance with the transaction
+	txRepo := &UserRepository{
+		queries: db.New(tx), // SQLC works with transactions
+		pool:    r.pool,     // Keep reference to pool for potential nested transactions
+	}
+
+	if err := fn(txRepo); err != nil {
+		return err // Transaction will be rolled back via defer
+	}
+
+	return tx.Commit(ctx)
+}
+
 // GetUserAccount retrieves a user account by ID
 func (r *UserRepository) GetUserAccount(ctx context.Context, id uuid.UUID) (*db.UserAccount, error) {
 	userAccount, err := r.queries.GetUserAccount(ctx, id)
@@ -92,23 +113,16 @@ func (r *UserRepository) AddCreditsToUser(ctx context.Context, id uuid.UUID, cre
 	return nil
 }
 
-// WithTransaction executes a function within a database transaction
-func (r *UserRepository) WithTransaction(ctx context.Context, fn func(*UserRepository) error) error {
-	tx, err := r.pool.Begin(ctx)
+// RemoveCreditsFromUser removes credits from a user's account
+func (r *UserRepository) RemoveCreditsFromUser(ctx context.Context, id uuid.UUID, credits int32) error {
+	params := &db.RemoveCreditsFromUserParams{
+		ID:      id,
+		Credits: credits,
+	}
+
+	err := r.queries.RemoveCreditsFromUser(ctx, params)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf("failed to remove credits from user: %w", err)
 	}
-	defer tx.Rollback(ctx) // Always rollback unless committed
-
-	// Create a new repository instance with the transaction
-	txRepo := &UserRepository{
-		queries: db.New(tx), // SQLC works with transactions
-		pool:    r.pool,     // Keep reference to pool for potential nested transactions
-	}
-
-	if err := fn(txRepo); err != nil {
-		return err // Transaction will be rolled back via defer
-	}
-
-	return tx.Commit(ctx)
+	return nil
 }
