@@ -101,3 +101,15 @@ variable "certificate_arn" {
   type        = string
   default     = ""
 }
+
+variable "stripe_secret_key" {
+  description = "Stripe secret key"
+  type        = string
+  sensitive   = true
+}
+
+variable "stripe_webhook_secret" {
+  description = "Stripe webhook secret"
+  type        = string
+  sensitive   = true
+}

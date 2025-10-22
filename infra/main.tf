@@ -253,6 +253,14 @@ resource "aws_ecs_task_definition" "main" {
         {
           name  = "JWT_SECRET"
           value = var.jwt_secret
+        },
+        {
+          name  = "STRIPE_SECRET_KEY"
+          value = var.stripe_secret_key
+        },
+        {
+          name  = "STRIPE_WEBHOOK_SECRET"
+          value = var.stripe_webhook_secret
         }
       ])
 

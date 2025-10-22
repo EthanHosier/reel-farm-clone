@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -21,7 +22,12 @@ type SubscriptionService struct {
 
 func NewSubscriptionService(userRepo *repository.UserRepository) *SubscriptionService {
 	// Set Stripe API key
-	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+	stripeSecretKey := os.Getenv("STRIPE_SECRET_KEY")
+	if stripeSecretKey == "" {
+		log.Fatal("STRIPE_SECRET_KEY is not set")
+	}
+
+	stripe.Key = stripeSecretKey
 
 	return &SubscriptionService{
 		userRepo: userRepo,
