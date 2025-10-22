@@ -10,9 +10,9 @@ import (
 func CORSMiddleware() func(http.Handler) http.Handler {
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{
-			"http://localhost:5173", // Vite dev server
-			"http://localhost:3000", // Backend (for self-requests)
-			"https://reel-farm-clone-frontend.vercel.app/",
+			"http://localhost:5173",                       // Vite dev server
+			"http://localhost:3000",                       // Backend (for self-requests)
+			"https://reel-farm-clone-frontend.vercel.app", // Production frontend
 		},
 		AllowedMethods: []string{
 			http.MethodGet,
@@ -22,15 +22,9 @@ func CORSMiddleware() func(http.Handler) http.Handler {
 			http.MethodOptions,
 			http.MethodPatch,
 		},
-		AllowedHeaders: []string{
-			"Accept",
-			"Authorization",
-			"Content-Type",
-			"X-CSRF-Token",
-			"X-Requested-With",
-		},
+		AllowedHeaders:   []string{"*"}, // Allow all headers for now
 		AllowCredentials: true,
-		Debug:            false, // Enable debug to see CORS logs
+		Debug:            true, // Enable debug to see CORS logs
 	})
 
 	return c.Handler
