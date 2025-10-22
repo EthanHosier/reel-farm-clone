@@ -137,6 +137,168 @@ $$;
 
 
 --
+-- Name: credit_txns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.credit_txns (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    request_id text NOT NULL,
+    amount integer NOT NULL,
+    status text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT credit_txns_amount_check CHECK ((amount > 0)),
+    CONSTRAINT credit_txns_status_check CHECK ((status = ANY (ARRAY['reserved'::text, 'captured'::text, 'refunded'::text])))
+);
+
+
+--
+-- Name: TABLE credit_txns; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.credit_txns IS 'Tracks credit transactions for idempotency and audit purposes';
+
+
+--
+-- Name: COLUMN credit_txns.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.credit_txns.id IS 'Unique transaction identifier';
+
+
+--
+-- Name: COLUMN credit_txns.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.credit_txns.user_id IS 'User who owns this transaction';
+
+
+--
+-- Name: COLUMN credit_txns.request_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.credit_txns.request_id IS 'Client-supplied idempotency key to prevent double-charging';
+
+
+--
+-- Name: COLUMN credit_txns.amount; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.credit_txns.amount IS 'Number of credits involved in this transaction (must be > 0)';
+
+
+--
+-- Name: COLUMN credit_txns.status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.credit_txns.status IS 'Transaction status: reserved (pending), captured (completed), refunded (failed)';
+
+
+--
+-- Name: COLUMN credit_txns.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.credit_txns.created_at IS 'When the transaction was first created';
+
+
+--
+-- Name: COLUMN credit_txns.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.credit_txns.updated_at IS 'When the transaction was last updated';
+
+
+--
+-- Name: hooks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.hooks (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    generation_id uuid NOT NULL,
+    prompt text NOT NULL,
+    hook_text text NOT NULL,
+    hook_index integer NOT NULL,
+    credits_used integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT hooks_credits_used_check CHECK ((credits_used > 0)),
+    CONSTRAINT hooks_hook_index_check CHECK ((hook_index >= 0))
+);
+
+
+--
+-- Name: TABLE hooks; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.hooks IS 'Stores individual generated hooks for users';
+
+
+--
+-- Name: COLUMN hooks.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.id IS 'Unique hook identifier';
+
+
+--
+-- Name: COLUMN hooks.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.user_id IS 'User who generated this hook';
+
+
+--
+-- Name: COLUMN hooks.generation_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.generation_id IS 'Groups hooks from the same generation request';
+
+
+--
+-- Name: COLUMN hooks.prompt; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.prompt IS 'The prompt used to generate this hook';
+
+
+--
+-- Name: COLUMN hooks.hook_text; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.hook_text IS 'The actual hook text';
+
+
+--
+-- Name: COLUMN hooks.hook_index; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.hook_index IS 'Order of this hook within the generation (0-based)';
+
+
+--
+-- Name: COLUMN hooks.credits_used; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.credits_used IS 'Number of credits consumed for this generation';
+
+
+--
+-- Name: COLUMN hooks.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.created_at IS 'When the hook was generated';
+
+
+--
+-- Name: COLUMN hooks.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.hooks.updated_at IS 'When the record was last updated';
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -172,6 +334,30 @@ COMMENT ON COLUMN public.user_accounts.credits IS 'Number of credits available t
 
 
 --
+-- Name: credit_txns credit_txns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.credit_txns
+    ADD CONSTRAINT credit_txns_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: credit_txns credit_txns_request_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.credit_txns
+    ADD CONSTRAINT credit_txns_request_id_key UNIQUE (request_id);
+
+
+--
+-- Name: hooks hooks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hooks
+    ADD CONSTRAINT hooks_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -188,10 +374,68 @@ ALTER TABLE ONLY public.user_accounts
 
 
 --
+-- Name: idx_credit_txns_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_credit_txns_created_at ON public.credit_txns USING btree (created_at);
+
+
+--
+-- Name: idx_credit_txns_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_credit_txns_status ON public.credit_txns USING btree (status);
+
+
+--
+-- Name: idx_credit_txns_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_credit_txns_user_id ON public.credit_txns USING btree (user_id);
+
+
+--
+-- Name: idx_hooks_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_hooks_created_at ON public.hooks USING btree (created_at);
+
+
+--
+-- Name: idx_hooks_generation_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_hooks_generation_id ON public.hooks USING btree (generation_id);
+
+
+--
+-- Name: idx_hooks_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_hooks_user_id ON public.hooks USING btree (user_id);
+
+
+--
 -- Name: user_accounts set_updated_at_user_accounts; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER set_updated_at_user_accounts BEFORE UPDATE ON public.user_accounts FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
+
+
+--
+-- Name: credit_txns credit_txns_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.credit_txns
+    ADD CONSTRAINT credit_txns_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: hooks hooks_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hooks
+    ADD CONSTRAINT hooks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE CASCADE;
 
 
 --

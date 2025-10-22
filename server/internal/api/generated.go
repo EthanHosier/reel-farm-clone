@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -71,8 +72,8 @@ type GenerateHooksRequest struct {
 
 // GenerateHooksResponse defines model for GenerateHooksResponse.
 type GenerateHooksResponse struct {
-	// Hooks Array of generated hooks
-	Hooks []string `json:"hooks"`
+	// Hooks Array of generated hooks with IDs
+	Hooks []Hook `json:"hooks"`
 }
 
 // HealthResponse defines model for HealthResponse.
@@ -80,6 +81,15 @@ type HealthResponse struct {
 	Message string `json:"message"`
 	Port    string `json:"port"`
 	Status  string `json:"status"`
+}
+
+// Hook defines model for Hook.
+type Hook struct {
+	// Id Unique identifier for the hook
+	Id openapi_types.UUID `json:"id"`
+
+	// Text The hook text content
+	Text string `json:"text"`
 }
 
 // UserAccount defines model for UserAccount.
@@ -126,6 +136,9 @@ type ServerInterface interface {
 	// Generate hooks for TikTok slideshow
 	// (POST /hooks/generate)
 	GenerateHooks(w http.ResponseWriter, r *http.Request)
+	// Delete a hook
+	// (DELETE /hooks/{hookId})
+	DeleteHook(w http.ResponseWriter, r *http.Request, hookId openapi_types.UUID)
 	// Create Stripe checkout session
 	// (POST /subscription/create-checkout-session)
 	CreateCheckoutSession(w http.ResponseWriter, r *http.Request)
@@ -171,6 +184,37 @@ func (siw *ServerInterfaceWrapper) GenerateHooks(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GenerateHooks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteHook operation middleware
+func (siw *ServerInterfaceWrapper) DeleteHook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "hookId" -------------
+	var hookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hookId", r.PathValue("hookId"), &hookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "hookId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteHook(w, r, hookId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -362,6 +406,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
 	m.HandleFunc("POST "+options.BaseURL+"/hooks/generate", wrapper.GenerateHooks)
+	m.HandleFunc("DELETE "+options.BaseURL+"/hooks/{hookId}", wrapper.DeleteHook)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
 	m.HandleFunc("GET "+options.BaseURL+"/user", wrapper.GetUserAccount)

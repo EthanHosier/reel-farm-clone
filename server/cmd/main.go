@@ -55,12 +55,13 @@ func main() {
 
 	// Create services and handlers
 	userRepo := repository.NewUserRepository(pool)
+	hookRepo := repository.NewHookRepository(pool)
 	userService := service.NewUserService(userRepo)
 	subscriptionService := service.NewSubscriptionService(userRepo)
 
 	// Create LLM and Hook services
 	llmService := service.NewLLMService()
-	hookService := service.NewHookService(userRepo, llmService)
+	hookService := service.NewHookService(userRepo, hookRepo, llmService)
 
 	apiServer := handler.NewAPIServer(userService, subscriptionService, hookService)
 

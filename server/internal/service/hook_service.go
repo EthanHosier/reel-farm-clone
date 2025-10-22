@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/ethanhosier/reel-farm/internal/api"
 	"github.com/ethanhosier/reel-farm/internal/repository"
 	"github.com/google/uuid"
 )
@@ -40,6 +41,7 @@ The number of hooks to generate is: {{.NumHooks}}
 
 type HookService struct {
 	userRepo   *repository.UserRepository
+	hookRepo   *repository.HookRepository
 	llmService *LLMService
 }
 
@@ -52,15 +54,16 @@ type HookResponse struct {
 	Hooks []string `json:"hooks"`
 }
 
-func NewHookService(userRepo *repository.UserRepository, llmService *LLMService) *HookService {
+func NewHookService(userRepo *repository.UserRepository, hookRepo *repository.HookRepository, llmService *LLMService) *HookService {
 	return &HookService{
 		userRepo:   userRepo,
+		hookRepo:   hookRepo,
 		llmService: llmService,
 	}
 }
 
 // TODO: Add idempotency and race condition protection
-func (s *HookService) GenerateHooks(ctx context.Context, userID uuid.UUID, prompt string, numHooks int) ([]string, error) {
+func (s *HookService) GenerateHooks(ctx context.Context, userID uuid.UUID, prompt string, numHooks int) ([]api.Hook, error) {
 	// Use transaction to atomically check and deduct credits
 	err := s.userRepo.WithTransaction(ctx, func(txRepo *repository.UserRepository) error {
 		// Check if user has enough credits
@@ -92,7 +95,25 @@ func (s *HookService) GenerateHooks(ctx context.Context, userID uuid.UUID, promp
 		return nil, fmt.Errorf("failed to generate hooks: %w", err)
 	}
 
-	return hooks, nil
+	// Store hooks in database and collect results
+	generationID := uuid.New()
+	createdHooks, err := s.hookRepo.CreateHooksBatch(ctx, userID, generationID, prompt, hooks, creditCost)
+	if err != nil {
+		// If storing fails, refund credits and return error
+		_ = s.userRepo.AddCreditsToUser(ctx, userID, creditCost)
+		return nil, fmt.Errorf("failed to store hooks: %w", err)
+	}
+
+	// Convert database hooks to API hooks
+	var hookResults []api.Hook
+	for _, dbHook := range createdHooks {
+		hookResults = append(hookResults, api.Hook{
+			Id:   dbHook.ID,
+			Text: dbHook.HookText,
+		})
+	}
+
+	return hookResults, nil
 }
 
 func (s *HookService) doGenerateHooks(ctx context.Context, prompt string, numHooks int) ([]string, error) {
@@ -128,4 +149,13 @@ func (s *HookService) doGenerateHooks(ctx context.Context, prompt string, numHoo
 	}
 
 	return hooks, nil
+}
+
+// DeleteHook deletes a hook (only if it belongs to the user)
+func (s *HookService) DeleteHook(ctx context.Context, hookID uuid.UUID, userID uuid.UUID) error {
+	err := s.hookRepo.DeleteHook(ctx, hookID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete hook: %w", err)
+	}
+	return nil
 }

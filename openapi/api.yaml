@@ -111,6 +111,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /hooks/{hookId}:
+    delete:
+      summary: Delete a hook
+      description: Deletes a specific hook by ID (only if it belongs to the authenticated user)
+      operationId: deleteHook
+      tags:
+        - Hooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: hookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The ID of the hook to delete
+      responses:
+        "200":
+          description: Hook deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Hook deleted successfully"
+        "401":
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Hook not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /subscription/create-checkout-session:
     post:
       summary: Create Stripe checkout session
@@ -363,14 +410,39 @@ components:
         hooks:
           type: array
           items:
-            type: string
-          description: Array of generated hooks
+            $ref: "#/components/schemas/Hook"
+          description: Array of generated hooks with IDs
           example:
             [
-              "5 things I wish I knew before killing my plants",
-              "um so why did it take a plant expert explaining to me that traditional planters are so expensive just to constantly water plants...",
-              "fun fact you're probably spending way too much time and money on watering your plants when you don't need to",
+              {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "text": "5 things I wish I knew before killing my plants",
+              },
+              {
+                "id": "123e4567-e89b-12d3-a456-426614174001",
+                "text": "um so why did it take a plant expert explaining to me that traditional planters are so expensive just to constantly water plants...",
+              },
+              {
+                "id": "123e4567-e89b-12d3-a456-426614174002",
+                "text": "fun fact you're probably spending way too much time and money on watering your plants when you don't need to",
+              },
             ]
+
+    Hook:
+      type: object
+      required:
+        - id
+        - text
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the hook
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        text:
+          type: string
+          description: The hook text content
+          example: "5 things I wish I knew before killing my plants"
 
 tags:
   - name: Health

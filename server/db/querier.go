@@ -8,13 +8,29 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	AddCreditsToUser(ctx context.Context, arg *AddCreditsToUserParams) error
+	AtomicDebitCredits(ctx context.Context, arg *AtomicDebitCreditsParams) (int32, error)
+	CaptureCredits(ctx context.Context, id uuid.UUID) error
+	CreateHook(ctx context.Context, arg *CreateHookParams) (*Hook, error)
+	CreateHooksBatch(ctx context.Context, arg *CreateHooksBatchParams) ([]*Hook, error)
+	DeleteHook(ctx context.Context, arg *DeleteHookParams) error
+	GetHookByID(ctx context.Context, id uuid.UUID) (*Hook, error)
+	GetHooksByGeneration(ctx context.Context, generationID pgtype.UUID) ([]*Hook, error)
+	GetHooksByUser(ctx context.Context, arg *GetHooksByUserParams) ([]*Hook, error)
+	GetStaleReservedTxns(ctx context.Context) ([]*GetStaleReservedTxnsRow, error)
+	GetTxnByRequestID(ctx context.Context, requestID string) (*CreditTxn, error)
+	GetTxnStatus(ctx context.Context, id uuid.UUID) (string, error)
 	GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccount, error)
 	GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error)
+	GetUserHookCount(ctx context.Context, userID pgtype.UUID) (int64, error)
+	MarkTxnRefunded(ctx context.Context, id uuid.UUID) error
+	RefundCredits(ctx context.Context, arg *RefundCreditsParams) error
 	RemoveCreditsFromUser(ctx context.Context, arg *RemoveCreditsFromUserParams) error
+	ReserveCredits(ctx context.Context, arg *ReserveCreditsParams) (*ReserveCreditsRow, error)
 	UpdateUserBillingCustomerID(ctx context.Context, arg *UpdateUserBillingCustomerIDParams) error
 	UpdateUserPlan(ctx context.Context, arg *UpdateUserPlanParams) error
 }
