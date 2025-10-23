@@ -295,8 +295,8 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle>AI Avatar Videos</CardTitle>
               <CardDescription>
-                Click on a thumbnail to watch the video, or select one to add
-                your own text overlay
+                Click on a thumbnail to select it for video generation with your
+                own text overlay
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -316,7 +316,10 @@ export default function Dashboard() {
                           ? "ring-2 ring-blue-500"
                           : ""
                       }`}
-                      onClick={() => setSelectedVideo(video.video_url)}
+                      onClick={() => {
+                        setSelectedAvatarVideoId(video.id);
+                        setSelectedVideo(video.video_url);
+                      }}
                     >
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
                         <img
@@ -324,27 +327,6 @@ export default function Dashboard() {
                           alt={video.title}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                         />
-                      </div>
-                      <div className="p-2">
-                        <p
-                          className="text-xs text-gray-600 truncate"
-                          title={video.title}
-                        >
-                          {video.title}
-                        </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full mt-1 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedAvatarVideoId(video.id);
-                          }}
-                        >
-                          {selectedAvatarVideoId === video.id
-                            ? "Selected"
-                            : "Select"}
-                        </Button>
                       </div>
                     </div>
                   ))}
@@ -464,30 +446,6 @@ export default function Dashboard() {
                           alt={`Video with text: ${video.overlay_text}`}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                         />
-                      </div>
-                      <div className="p-2">
-                        <p
-                          className="text-xs text-gray-600 truncate"
-                          title={video.overlay_text}
-                        >
-                          "{video.overlay_text}"
-                        </p>
-                        <div className="flex items-center justify-between mt-1">
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              video.status === "completed"
-                                ? "bg-green-100 text-green-800"
-                                : video.status === "processing"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {video.status}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(video.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   ))}
