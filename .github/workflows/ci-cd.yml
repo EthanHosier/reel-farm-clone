@@ -89,7 +89,8 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build a docker container and push it to ECR
-          docker build -f server/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          cd server
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -122,14 +123,14 @@ jobs:
       - name: Health check
         run: |
           ALB_DNS="${{ steps.get-alb-dns.outputs.alb-dns }}"
-          echo "Performing health check on: http://$ALB_DNS/health"
+          echo "Performing health check on: http://$ALB_DNS/api/health"
 
           # Wait for ALB to be ready
           sleep 30
 
           # Perform health check with retries
           for i in {1..10}; do
-            if curl -f http://$ALB_DNS/health; then
+            if curl -f http://$ALB_DNS/api/health; then
               echo "✅ Health check passed!"
               exit 0
             else
@@ -146,7 +147,7 @@ jobs:
         run: |
           echo "🎉 Deployment successful!"
           echo "Application is available at: http://${{ steps.get-alb-dns.outputs.alb-dns }}"
-          echo "Health check: http://${{ steps.get-alb-dns.outputs.alb-dns }}/health"
+          echo "Health check: http://${{ steps.get-alb-dns.outputs.alb-dns }}/api/health"
 
       - name: Deployment failure notification
         if: failure()

@@ -96,7 +96,7 @@ func (s *APIServer) GetAIAvatarVideos(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(api.ErrorResponse{
 			Error:   "internal_error",
-			Message: "Failed to retrieve videos",
+			Message: "Failed to retrieve videos: " + err.Error(),
 		})
 		return
 	}

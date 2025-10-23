@@ -37,7 +37,7 @@ variable "app_port" {
 variable "health_check_path" {
   description = "Health check path"
   type        = string
-  default     = "/health"
+  default     = "/api/health"
 }
 
 variable "fargate_cpu" {

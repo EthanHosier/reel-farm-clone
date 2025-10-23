@@ -5,13 +5,13 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 # Copy go mod files
-COPY server/go.mod server/go.sum ./
+COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
 
 # Copy source code and OpenAPI files
-COPY server/ ./
+COPY . ./
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/run-server/main.go
@@ -19,8 +19,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/run-se
 # Final stage - minimal image
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates for HTTPS requests and FFmpeg
+RUN apk --no-cache add ca-certificates ffmpeg
 
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
