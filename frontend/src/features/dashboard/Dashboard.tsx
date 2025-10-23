@@ -14,14 +14,12 @@ import { useUser } from "./queries/useUser";
 import { HooksManager } from "./components/HooksManager";
 import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
 import { useUserGeneratedVideos } from "./queries/useUserGeneratedVideos";
-import { api } from "@/lib/api";
+import { useCreateUserGeneratedVideo } from "./queries/useCreateUserGeneratedVideo";
+import { useSubscriptionMutations } from "./queries/useSubscriptionMutations";
 import React, { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { CACHE_KEYS } from "@/lib/cacheKeys";
 
 export default function Dashboard() {
   const { user, session, signOut } = useAuth();
-  const queryClient = useQueryClient();
   const {
     data: health,
     isLoading: healthLoading,
@@ -43,9 +41,34 @@ export default function Dashboard() {
     error: userVideosError,
   } = useUserGeneratedVideos();
 
-  // Subscription state
-  const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
-  const [isCreatingPortal, setIsCreatingPortal] = useState(false);
+  // Video generation mutation
+  const createVideoMutation = useCreateUserGeneratedVideo({
+    onSuccess: () => {
+      alert("Video generated successfully!");
+      // Clear the form
+      setOverlayText("");
+      setSelectedAvatarVideoId(null);
+    },
+    onError: () => {
+      alert("Failed to generate video. Please try again.");
+    },
+  });
+
+  // Subscription mutations
+  const subscriptionMutations = useSubscriptionMutations({
+    onCheckoutSuccess: (checkoutUrl) => {
+      window.location.href = checkoutUrl;
+    },
+    onCheckoutError: () => {
+      alert("Failed to create checkout session. Please try again.");
+    },
+    onPortalSuccess: (portalUrl) => {
+      window.location.href = portalUrl;
+    },
+    onPortalError: () => {
+      alert("Failed to open customer portal. Please try again.");
+    },
+  });
 
   // Video preview state
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
@@ -55,7 +78,6 @@ export default function Dashboard() {
     string | null
   >(null);
   const [overlayText, setOverlayText] = useState("");
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   // Set default selected video when videos load
   React.useEffect(() => {
@@ -72,40 +94,18 @@ export default function Dashboard() {
     }
   };
 
-  const handleUpgradeToPro = async () => {
-    setIsCreatingCheckout(true);
-    try {
-      const response = await api.subscriptions.createCheckoutSession({
-        price_id: "price_1SKOuPLa4pEqShgojlivZTLc", // Your Stripe price ID
-        success_url: `${window.location.origin}/dashboard?success=true`,
-        cancel_url: `${window.location.origin}/dashboard?canceled=true`,
-      });
-
-      // Redirect to Stripe Checkout
-      window.location.href = response.checkout_url;
-    } catch (error) {
-      console.error("Error creating checkout session:", error);
-      alert("Failed to create checkout session. Please try again.");
-    } finally {
-      setIsCreatingCheckout(false);
-    }
+  const handleUpgradeToPro = () => {
+    subscriptionMutations.createCheckout.mutate({
+      price_id: "price_1SKOuPLa4pEqShgojlivZTLc", // Your Stripe price ID
+      success_url: `${window.location.origin}/dashboard?success=true`,
+      cancel_url: `${window.location.origin}/dashboard?canceled=true`,
+    });
   };
 
-  const handleManageSubscription = async () => {
-    setIsCreatingPortal(true);
-    try {
-      const response = await api.subscriptions.createCustomerPortalSession({
-        return_url: `${window.location.origin}/dashboard`,
-      });
-
-      // Redirect to Stripe Customer Portal
-      window.location.href = response.portal_url;
-    } catch (error) {
-      console.error("Error creating customer portal session:", error);
-      alert("Failed to open customer portal. Please try again.");
-    } finally {
-      setIsCreatingPortal(false);
-    }
+  const handleManageSubscription = () => {
+    subscriptionMutations.createPortal.mutate({
+      return_url: `${window.location.origin}/dashboard`,
+    });
   };
 
   const handleGenerateVideo = async () => {
@@ -114,30 +114,10 @@ export default function Dashboard() {
       return;
     }
 
-    setIsGeneratingVideo(true);
-    try {
-      await api.userGeneratedVideos.createUserGeneratedVideo({
-        ai_avatar_video_id: selectedAvatarVideoId,
-        overlay_text: overlayText.trim(),
-      });
-
-      // Show success message
-      alert("Video generated successfully!");
-
-      // Clear the form
-      setOverlayText("");
-      setSelectedAvatarVideoId(null);
-
-      // Refresh the user-generated videos list
-      await queryClient.invalidateQueries({
-        queryKey: CACHE_KEYS.USER_GENERATED_VIDEOS,
-      });
-    } catch (error) {
-      console.error("Error generating video:", error);
-      alert("Failed to generate video. Please try again.");
-    } finally {
-      setIsGeneratingVideo(false);
-    }
+    createVideoMutation.mutate({
+      ai_avatar_video_id: selectedAvatarVideoId,
+      overlay_text: overlayText.trim(),
+    });
   };
 
   const accessToken = session?.access_token;
@@ -281,9 +261,9 @@ export default function Dashboard() {
                     className="w-full"
                     size="lg"
                     onClick={handleUpgradeToPro}
-                    disabled={isCreatingCheckout}
+                    disabled={subscriptionMutations.createCheckout.isPending}
                   >
-                    {isCreatingCheckout
+                    {subscriptionMutations.createCheckout.isPending
                       ? "Creating Checkout..."
                       : "Upgrade to Pro"}
                   </Button>
@@ -296,9 +276,9 @@ export default function Dashboard() {
                       variant="outline"
                       className="mt-2"
                       onClick={handleManageSubscription}
-                      disabled={isCreatingPortal}
+                      disabled={subscriptionMutations.createPortal.isPending}
                     >
-                      {isCreatingPortal
+                      {subscriptionMutations.createPortal.isPending
                         ? "Opening Portal..."
                         : "Manage Subscription"}
                     </Button>
@@ -407,10 +387,14 @@ export default function Dashboard() {
                   <div className="flex gap-2">
                     <Button
                       onClick={handleGenerateVideo}
-                      disabled={isGeneratingVideo || !overlayText.trim()}
+                      disabled={
+                        createVideoMutation.isPending || !overlayText.trim()
+                      }
                       className="flex-1"
                     >
-                      {isGeneratingVideo ? "Generating..." : "Generate Video"}
+                      {createVideoMutation.isPending
+                        ? "Generating..."
+                        : "Generate Video"}
                     </Button>
                     <Button
                       variant="outline"
