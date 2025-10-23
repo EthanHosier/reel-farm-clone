@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { useHealth } from "./queries/useHealth";
 import { useUser } from "./queries/useUser";
+import { HooksManager } from "./components/HooksManager";
 import { api } from "@/lib/api";
 import { useState } from "react";
 
@@ -240,6 +241,9 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Hooks Management */}
+          <HooksManager />
         </div>
       </div>
     </div>

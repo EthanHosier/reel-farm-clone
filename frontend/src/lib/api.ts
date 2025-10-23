@@ -1,3 +1,4 @@
+import { HooksService } from "@/api";
 import { OpenAPI } from "@/api/core/OpenAPI";
 import { HealthService } from "@/api/services/HealthService";
 import { SubscriptionsService } from "@/api/services/SubscriptionsService";
@@ -28,6 +29,7 @@ export const api = {
   health: HealthService,
   users: UsersService,
   subscriptions: SubscriptionsService,
+  hooks: HooksService,
 };
 
 // Re-export types for convenience
@@ -38,4 +40,8 @@ export type {
   CreateCustomerPortalRequest,
   CheckoutSessionResponse,
   CustomerPortalResponse,
+  Hook,
+  GenerateHooksRequest,
+  GenerateHooksResponse,
+  GetHooksResponse,
 } from "@/api";

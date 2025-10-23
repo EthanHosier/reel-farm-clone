@@ -71,6 +71,22 @@ func (q *Queries) GetUserByBillingCustomerID(ctx context.Context, billingCustome
 	return &i, err
 }
 
+const RemoveCreditsFromUser = `-- name: RemoveCreditsFromUser :exec
+UPDATE public.user_accounts
+SET credits = credits - $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type RemoveCreditsFromUserParams struct {
+	ID      uuid.UUID `json:"id"`
+	Credits int32     `json:"credits"`
+}
+
+func (q *Queries) RemoveCreditsFromUser(ctx context.Context, arg *RemoveCreditsFromUserParams) error {
+	_, err := q.db.Exec(ctx, RemoveCreditsFromUser, arg.ID, arg.Credits)
+	return err
+}
+
 const UpdateUserBillingCustomerID = `-- name: UpdateUserBillingCustomerID :exec
 UPDATE public.user_accounts 
 SET billing_customer_id = $2, updated_at = NOW()

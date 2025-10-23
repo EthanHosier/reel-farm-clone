@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -60,11 +61,44 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+// GenerateHooksRequest defines model for GenerateHooksRequest.
+type GenerateHooksRequest struct {
+	// NumHooks Number of hooks to generate
+	NumHooks int `json:"num_hooks"`
+
+	// Prompt The topic or theme for generating hooks
+	Prompt string `json:"prompt"`
+}
+
+// GenerateHooksResponse defines model for GenerateHooksResponse.
+type GenerateHooksResponse struct {
+	// Hooks Array of generated hooks with IDs
+	Hooks []Hook `json:"hooks"`
+}
+
+// GetHooksResponse defines model for GetHooksResponse.
+type GetHooksResponse struct {
+	// Hooks Array of user's hooks
+	Hooks []Hook `json:"hooks"`
+
+	// TotalCount Total number of hooks for the user
+	TotalCount int `json:"total_count"`
+}
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Message string `json:"message"`
 	Port    string `json:"port"`
 	Status  string `json:"status"`
+}
+
+// Hook defines model for Hook.
+type Hook struct {
+	// Id Unique identifier for the hook
+	Id openapi_types.UUID `json:"id"`
+
+	// Text The hook text content
+	Text string `json:"text"`
 }
 
 // UserAccount defines model for UserAccount.
@@ -94,6 +128,18 @@ type UserAccount struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// GetHooksParams defines parameters for GetHooks.
+type GetHooksParams struct {
+	// Limit Number of hooks to return
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of hooks to skip
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// GenerateHooksJSONRequestBody defines body for GenerateHooks for application/json ContentType.
+type GenerateHooksJSONRequestBody = GenerateHooksRequest
+
 // CreateCheckoutSessionJSONRequestBody defines body for CreateCheckoutSession for application/json ContentType.
 type CreateCheckoutSessionJSONRequestBody = CreateCheckoutSessionRequest
 
@@ -105,6 +151,15 @@ type ServerInterface interface {
 	// Health check endpoint
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// Get user's hooks
+	// (GET /hooks)
+	GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams)
+	// Generate hooks for TikTok slideshow
+	// (POST /hooks/generate)
+	GenerateHooks(w http.ResponseWriter, r *http.Request)
+	// Delete a hook
+	// (DELETE /hooks/{hookId})
+	DeleteHook(w http.ResponseWriter, r *http.Request, hookId openapi_types.UUID)
 	// Create Stripe checkout session
 	// (POST /subscription/create-checkout-session)
 	CreateCheckoutSession(w http.ResponseWriter, r *http.Request)
@@ -130,6 +185,98 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHooks operation middleware
+func (siw *ServerInterfaceWrapper) GetHooks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetHooksParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHooks(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GenerateHooks operation middleware
+func (siw *ServerInterfaceWrapper) GenerateHooks(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GenerateHooks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteHook operation middleware
+func (siw *ServerInterfaceWrapper) DeleteHook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "hookId" -------------
+	var hookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hookId", r.PathValue("hookId"), &hookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "hookId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteHook(w, r, hookId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -320,6 +467,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
+	m.HandleFunc("GET "+options.BaseURL+"/hooks", wrapper.GetHooks)
+	m.HandleFunc("POST "+options.BaseURL+"/hooks/generate", wrapper.GenerateHooks)
+	m.HandleFunc("DELETE "+options.BaseURL+"/hooks/{hookId}", wrapper.DeleteHook)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
 	m.HandleFunc("GET "+options.BaseURL+"/user", wrapper.GetUserAccount)

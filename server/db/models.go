@@ -11,6 +11,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+// Tracks credit transactions for idempotency and audit purposes
+type CreditTxn struct {
+	// Unique transaction identifier
+	ID uuid.UUID `json:"id"`
+	// User who owns this transaction
+	UserID pgtype.UUID `json:"user_id"`
+	// Client-supplied idempotency key to prevent double-charging
+	RequestID string `json:"request_id"`
+	// Number of credits involved in this transaction (must be > 0)
+	Amount int32 `json:"amount"`
+	// Transaction status: reserved (pending), captured (completed), refunded (failed)
+	Status string `json:"status"`
+	// When the transaction was first created
+	CreatedAt time.Time `json:"created_at"`
+	// When the transaction was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Stores individual generated hooks for users
+type Hook struct {
+	// Unique hook identifier
+	ID uuid.UUID `json:"id"`
+	// User who generated this hook
+	UserID pgtype.UUID `json:"user_id"`
+	// Groups hooks from the same generation request
+	GenerationID pgtype.UUID `json:"generation_id"`
+	// The prompt used to generate this hook
+	Prompt string `json:"prompt"`
+	// The actual hook text
+	HookText string `json:"hook_text"`
+	// Order of this hook within the generation (0-based)
+	HookIndex int32 `json:"hook_index"`
+	// Number of credits consumed for this generation
+	CreditsUsed int32 `json:"credits_used"`
+	// When the hook was generated
+	CreatedAt time.Time `json:"created_at"`
+	// When the record was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type SchemaMigration struct {
 	Version   string             `json:"version"`
 	AppliedAt pgtype.Timestamptz `json:"applied_at"`
