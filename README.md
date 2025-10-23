@@ -83,7 +83,7 @@ npm run dev:frontend
 
 ```bash
 cd server
-go run cmd/main.go
+go run cmd/run-server/main.go
 ```
 
 **Frontend:**
@@ -182,8 +182,8 @@ npm run generate-api          # Generate API client from OpenAPI spec
 
 ```bash
 cd server
-go run cmd/main.go           # Run server directly
-go run cmd/main.go --noAuth  # Run without authentication
+go run cmd/run-server/main.go        # Run server directly
+go run cmd/run-server/main.go --noAuth  # Run without authentication
 make generate-api            # Generate OpenAPI Go code
 make clean                  # Clean generated files
 ```
@@ -302,7 +302,7 @@ Enable debug logging:
 ```bash
 # Backend
 cd server
-go run cmd/main.go --debug
+go run cmd/run-server/main.go --debug
 
 # Frontend
 cd frontend

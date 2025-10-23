@@ -47,3 +47,7 @@ install-deps: ## Install dependencies
 	@go mod download
 	@go mod tidy
 	@echo "✅ Dependencies installed"
+
+upload-videos: ## Upload videos to S3 (requires --title and --bucket flags)
+	@echo "🎬 Uploading videos..."
+	@go run cmd/upload-videos/main.go $(ARGS)
