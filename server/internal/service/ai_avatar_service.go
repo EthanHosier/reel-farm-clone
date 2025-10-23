@@ -1,10 +1,11 @@
 package service
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -244,16 +245,47 @@ func (s *AIAvatarService) addTextOverlay(inputPath, text, outputPath string) err
 		outputPath,
 	)
 
-	// Capture both stdout and stderr for better error reporting
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// Stream FFmpeg output in real time
+	log.Printf("🎬 Starting FFmpeg processing...")
+	log.Printf("📝 Command: %s", cmd.String())
 
-	err = cmd.Run()
+	// Create pipes for stdout and stderr
+	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("ffmpeg failed: %w, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start ffmpeg: %w", err)
+	}
+
+	// Stream stdout and stderr in real time
+	go func() {
+		scanner := bufio.NewScanner(stdoutPipe)
+		for scanner.Scan() {
+			log.Printf("FFmpeg stdout: %s", scanner.Text())
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderrPipe)
+		for scanner.Scan() {
+			log.Printf("FFmpeg stderr: %s", scanner.Text())
+		}
+	}()
+
+	// Wait for the command to complete
+	err = cmd.Wait()
+	if err != nil {
+		return fmt.Errorf("ffmpeg failed: %w", err)
+	}
+
+	log.Printf("✅ FFmpeg processing completed successfully")
 	return nil
 }
 
@@ -268,16 +300,47 @@ func (s *AIAvatarService) extractThumbnail(videoPath, thumbnailPath string) erro
 		thumbnailPath,
 	)
 
-	// Capture both stdout and stderr for better error reporting
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// Stream FFmpeg output in real time
+	log.Printf("🖼️ Starting thumbnail extraction...")
+	log.Printf("📝 Command: %s", cmd.String())
 
-	err := cmd.Run()
+	// Create pipes for stdout and stderr
+	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("ffmpeg thumbnail extraction failed: %w, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start ffmpeg: %w", err)
+	}
+
+	// Stream stdout and stderr in real time
+	go func() {
+		scanner := bufio.NewScanner(stdoutPipe)
+		for scanner.Scan() {
+			log.Printf("FFmpeg thumbnail stdout: %s", scanner.Text())
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderrPipe)
+		for scanner.Scan() {
+			log.Printf("FFmpeg thumbnail stderr: %s", scanner.Text())
+		}
+	}()
+
+	// Wait for the command to complete
+	err = cmd.Wait()
+	if err != nil {
+		return fmt.Errorf("ffmpeg thumbnail extraction failed: %w", err)
+	}
+
+	log.Printf("✅ Thumbnail extraction completed successfully")
 	return nil
 }
 
