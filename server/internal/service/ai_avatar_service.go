@@ -241,9 +241,9 @@ func (s *AIAvatarService) addTextOverlay(inputPath, text, outputPath string) err
 		"-i", inputPath,
 		"-vf", videoFilter,
 		"-c:v", "libx264",
-		"-preset", "ultrafast", // Fastest encoding preset
-		"-crf", "35", // Lower quality but much faster
-		"-threads", "1", // Single thread to avoid CPU contention
+		"-preset", "fast", // Better quality than ultrafast, still fast
+		"-crf", "23", // Much better quality (18-28 range, 23 is good balance)
+		"-threads", "1", // Single thread for 0.5 vCPU
 		"-c:a", "copy", // Copy audio without re-encoding
 		"-y", // Overwrite output file if it exists
 		outputPath,
@@ -299,8 +299,8 @@ func (s *AIAvatarService) extractThumbnail(videoPath, thumbnailPath string) erro
 		"-i", videoPath,
 		"-ss", "00:00:01", // Extract frame at 1 second
 		"-vframes", "1",
-		"-q:v", "5", // Lower quality but much faster
-		"-threads", "1", // Single thread
+		"-q:v", "2", // Better quality thumbnail
+		"-threads", "1", // Single thread for 0.5 vCPU
 		"-y", // Overwrite output file if it exists
 		thumbnailPath,
 	)

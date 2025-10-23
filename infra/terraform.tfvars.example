@@ -15,8 +15,8 @@ health_check_path = "/health"
 container_name    = "reel-farm-app"
 
 # Fargate Configuration
-fargate_cpu    = 256
-fargate_memory = 512
+fargate_cpu    = 512
+fargate_memory = 1024
 desired_count  = 1
 
 # Database Configuration
