@@ -391,6 +391,14 @@ resource "aws_s3_bucket_policy" "cloudfront_access" {
         }
         Action   = "s3:GetObject"
         Resource = "${aws_s3_bucket.main.arn}/ai-avatar/*"
+      },
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_cloudfront_origin_access_identity.content_oai.iam_arn
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.main.arn}/user-generated-videos/*"
       }
     ]
   })
@@ -582,9 +590,31 @@ resource "aws_cloudfront_distribution" "main" {
     max_ttl                = 0
   }
 
-  # Cache behavior for video content
+  # Cache behavior for AI avatar video content
   ordered_cache_behavior {
     path_pattern     = "/ai-avatar/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "${var.project_name}-s3-content"
+    
+    forwarded_values {
+      query_string = false
+      headers      = ["Range"]  # Enable video seeking
+      cookies {
+        forward = "none"
+      }
+    }
+    
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl               = 0
+    default_ttl           = 86400    # 24 hours
+    max_ttl               = 31536000 # 1 year
+  }
+
+  # Cache behavior for user-generated video content
+  ordered_cache_behavior {
+    path_pattern     = "/user-generated-videos/*"
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "${var.project_name}-s3-content"
