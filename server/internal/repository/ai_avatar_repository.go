@@ -6,15 +6,16 @@ import (
 
 	"github.com/ethanhosier/reel-farm/db"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AIAvatarRepository struct {
 	queries *db.Queries
 }
 
-func NewAIAvatarRepository(queries *db.Queries) *AIAvatarRepository {
+func NewAIAvatarRepository(pool *pgxpool.Pool) *AIAvatarRepository {
 	return &AIAvatarRepository{
-		queries: queries,
+		queries: db.New(pool),
 	}
 }
 

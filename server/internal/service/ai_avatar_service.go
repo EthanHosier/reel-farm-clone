@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ethanhosier/reel-farm/db"
 	"github.com/ethanhosier/reel-farm/internal/repository"
@@ -47,44 +46,4 @@ func (s *AIAvatarService) DeleteVideo(ctx context.Context, id uuid.UUID) error {
 // VideoExists checks if a video exists by ID
 func (s *AIAvatarService) VideoExists(ctx context.Context, id uuid.UUID) (bool, error) {
 	return s.repo.VideoExists(ctx, id)
-}
-
-// GetVideoWithURLs retrieves a video with CloudFront URLs
-func (s *AIAvatarService) GetVideoWithURLs(ctx context.Context, id uuid.UUID, cloudfrontDomain string) (*VideoWithURLs, error) {
-	video, err := s.repo.GetVideoByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get video: %w", err)
-	}
-
-	return &VideoWithURLs{
-		Video:        video,
-		VideoURL:     fmt.Sprintf("https://%s/ai-avatar/videos/%s", cloudfrontDomain, video.Filename),
-		ThumbnailURL: fmt.Sprintf("https://%s/ai-avatar/thumbnails/%s", cloudfrontDomain, video.ThumbnailFilename),
-	}, nil
-}
-
-// GetAllVideosWithURLs retrieves all videos with CloudFront URLs
-func (s *AIAvatarService) GetAllVideosWithURLs(ctx context.Context, cloudfrontDomain string) ([]*VideoWithURLs, error) {
-	videos, err := s.repo.GetAllVideos(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get videos: %w", err)
-	}
-
-	var videosWithURLs []*VideoWithURLs
-	for _, video := range videos {
-		videosWithURLs = append(videosWithURLs, &VideoWithURLs{
-			Video:        video,
-			VideoURL:     fmt.Sprintf("https://%s/ai-avatar/videos/%s", cloudfrontDomain, video.Filename),
-			ThumbnailURL: fmt.Sprintf("https://%s/ai-avatar/thumbnails/%s", cloudfrontDomain, video.ThumbnailFilename),
-		})
-	}
-
-	return videosWithURLs, nil
-}
-
-// VideoWithURLs represents a video with CloudFront URLs
-type VideoWithURLs struct {
-	Video        *db.AiAvatarVideo `json:"video"`
-	VideoURL     string            `json:"video_url"`
-	ThumbnailURL string            `json:"thumbnail_url"`
 }

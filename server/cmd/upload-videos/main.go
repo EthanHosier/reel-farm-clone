@@ -131,7 +131,7 @@ func NewVideoUploader(bucketName string) (*VideoUploader, error) {
 	return &VideoUploader{
 		s3Client:   s3Client,
 		uploader:   uploader,
-		service:    service.NewAIAvatarService(repository.NewAIAvatarRepository(db.New(pool))),
+		service:    service.NewAIAvatarService(repository.NewAIAvatarRepository(pool)),
 		bucketName: bucketName,
 		tempDir:    tempDir,
 	}, nil

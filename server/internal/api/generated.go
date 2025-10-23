@@ -19,6 +19,30 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// AIAvatarVideo defines model for AIAvatarVideo.
+type AIAvatarVideo struct {
+	// Id Unique identifier for the video
+	Id openapi_types.UUID `json:"id"`
+
+	// ThumbnailUrl CloudFront URL for thumbnail
+	ThumbnailUrl string `json:"thumbnail_url"`
+
+	// Title Video title
+	Title string `json:"title"`
+
+	// UpdatedAt When the video was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// VideoUrl CloudFront URL for video download
+	VideoUrl string `json:"video_url"`
+}
+
+// AIAvatarVideosResponse defines model for AIAvatarVideosResponse.
+type AIAvatarVideosResponse struct {
+	// Videos List of AI avatar videos
+	Videos []AIAvatarVideo `json:"videos"`
+}
+
 // CheckoutSessionResponse defines model for CheckoutSessionResponse.
 type CheckoutSessionResponse struct {
 	// CheckoutUrl Stripe checkout session URL
@@ -148,6 +172,9 @@ type CreateCustomerPortalSessionJSONRequestBody = CreateCustomerPortalRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get all AI avatar videos
+	// (GET /ai-avatar/videos)
+	GetAIAvatarVideos(w http.ResponseWriter, r *http.Request)
 	// Health check endpoint
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -179,6 +206,26 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetAIAvatarVideos operation middleware
+func (siw *ServerInterfaceWrapper) GetAIAvatarVideos(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAIAvatarVideos(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
@@ -466,6 +513,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc("GET "+options.BaseURL+"/ai-avatar/videos", wrapper.GetAIAvatarVideos)
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
 	m.HandleFunc("GET "+options.BaseURL+"/hooks", wrapper.GetHooks)
 	m.HandleFunc("POST "+options.BaseURL+"/hooks/generate", wrapper.GenerateHooks)

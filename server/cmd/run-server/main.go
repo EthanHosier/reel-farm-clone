@@ -63,7 +63,11 @@ func main() {
 	llmService := service.NewLLMService()
 	hookService := service.NewHookService(userRepo, hookRepo, llmService)
 
-	apiServer := handler.NewAPIServer(userService, subscriptionService, hookService)
+	// Create AI avatar service
+	aiAvatarRepo := repository.NewAIAvatarRepository(pool)
+	aiAvatarService := service.NewAIAvatarService(aiAvatarRepo)
+
+	apiServer := handler.NewAPIServer(userService, subscriptionService, hookService, aiAvatarService)
 
 	// Create HTTP handler using generated code with auth middleware
 	apiHandler := api.HandlerWithOptions(apiServer, api.StdHTTPServerOptions{

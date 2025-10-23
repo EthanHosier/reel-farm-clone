@@ -2,9 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/ethanhosier/reel-farm/db"
 	"github.com/ethanhosier/reel-farm/internal/api"
 	"github.com/ethanhosier/reel-farm/internal/context_keys"
 	"github.com/ethanhosier/reel-farm/internal/service"
@@ -17,15 +20,49 @@ type APIServer struct {
 	userService         *service.UserService
 	subscriptionService *service.SubscriptionService
 	hookService         *service.HookService
+	aiAvatarService     *service.AIAvatarService
 }
 
 // NewAPIServer creates a new API server handler
-func NewAPIServer(userService *service.UserService, subscriptionService *service.SubscriptionService, hookService *service.HookService) *APIServer {
+func NewAPIServer(userService *service.UserService, subscriptionService *service.SubscriptionService, hookService *service.HookService, aiAvatarService *service.AIAvatarService) *APIServer {
 	return &APIServer{
 		userService:         userService,
 		subscriptionService: subscriptionService,
 		hookService:         hookService,
+		aiAvatarService:     aiAvatarService,
 	}
+}
+
+// generateCloudFrontURL creates a CloudFront URL for a given path
+func (s *APIServer) generateCloudFrontURL(path string) (string, error) {
+	cloudfrontDomain := os.Getenv("CLOUDFRONT_DOMAIN")
+	if cloudfrontDomain == "" {
+		return "", fmt.Errorf("CLOUDFRONT_DOMAIN is not set")
+	}
+	return fmt.Sprintf("https://%s/%s", cloudfrontDomain, path), nil
+}
+
+// toVideoAPIResponse converts a database video to API response format
+func (s *APIServer) toVideoAPIResponse(video *db.AiAvatarVideo) (map[string]interface{}, error) {
+	videoPath := fmt.Sprintf("ai-avatar/videos/%s", video.Filename)
+	thumbnailPath := fmt.Sprintf("ai-avatar/thumbnails/%s", video.ThumbnailFilename)
+
+	videoURL, err := s.generateCloudFrontURL(videoPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate video URL: %w", err)
+	}
+	thumbnailURL, err := s.generateCloudFrontURL(thumbnailPath)
+	if err != nil {
+		return map[string]interface{}{}, fmt.Errorf("failed to generate thumbnail URL: %w", err)
+	}
+
+	return map[string]interface{}{
+		"id":            video.ID,
+		"title":         video.Title,
+		"video_url":     videoURL,
+		"thumbnail_url": thumbnailURL,
+		"updated_at":    video.UpdatedAt,
+	}, nil
 }
 
 // GetHealth handles GET /health
@@ -47,6 +84,42 @@ func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to JSON and send
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetAIAvatarVideos handles GET /ai-avatar/videos
+func (s *APIServer) GetAIAvatarVideos(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	videos, err := s.aiAvatarService.GetAllVideos(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to retrieve videos",
+		})
+		return
+	}
+
+	// Convert videos to API response format
+	var videoResponses []map[string]interface{}
+	for _, video := range videos {
+		videoResponse, err := s.toVideoAPIResponse(video)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(api.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to convert video to API response: " + err.Error(),
+			})
+			return
+		}
+		videoResponses = append(videoResponses, videoResponse)
+	}
+
+	response := map[string]interface{}{
+		"videos": videoResponses,
+	}
+
 	json.NewEncoder(w).Encode(response)
 }
 
