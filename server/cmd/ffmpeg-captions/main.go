@@ -59,24 +59,31 @@ func main() {
 	baseName := strings.TrimSuffix(filepath.Base(firstVideo), filepath.Ext(firstVideo))
 	outputFile := fmt.Sprintf("%s_with_text.mp4", baseName)
 
-	fmt.Printf("📝 Adding text: '%s'\n", text)
+	// Wrap text if it's too long (approximately 20 characters per line for 48px font)
+	wrappedLines := wrapTextToLines(text, 20)
+
+	fmt.Printf("📝 Adding text (%d lines):\n", len(wrappedLines))
+	for i, line := range wrappedLines {
+		fmt.Printf("  Line %d: '%s'\n", i+1, line)
+	}
 	fmt.Printf("💾 Output file: %s\n", outputFile)
 
-	// FFmpeg command to add text overlay with border outline
-	// -i: input video
-	// -vf: video filter with drawtext
-	// drawtext parameters:
-	//   text='Sample Text': the text to display
-	//   fontfile=TikTokDisplay-Medium.ttf: custom font file
-	//   fontsize=48: font size
-	//   fontcolor=white: text color
-	//   x=(w-text_w)/2: center horizontally
-	//   y=(h-text_h)/2: center vertically
-	//   borderw=3: border width around text
-	//   bordercolor=black: black border color
+	// Create a temporary text file with the wrapped text
+	tempTextFile := "temp_text.txt"
+	joinedText := strings.Join(wrappedLines, "\n")
+	err = os.WriteFile(tempTextFile, []byte(joinedText), 0644)
+	if err != nil {
+		fmt.Printf("❌ Failed to create temporary text file: %v\n", err)
+		os.Exit(1)
+	}
+	defer os.Remove(tempTextFile) // Clean up the temp file
+
+	// Use textfile parameter instead of inline text
+	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=TikTokDisplay-Medium.ttf:fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=5:bordercolor=black", tempTextFile)
+
 	cmd := exec.Command("ffmpeg",
 		"-i", firstVideo,
-		"-vf", fmt.Sprintf("drawtext=text='%s':fontfile=TikTokDisplay-Medium.ttf:fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=5:bordercolor=black", text),
+		"-vf", videoFilter,
 		"-c:a", "copy", // Copy audio without re-encoding
 		"-y", // Overwrite output file if it exists
 		outputFile,
@@ -95,4 +102,35 @@ func main() {
 
 	fmt.Printf("✅ Successfully created %s\n", outputFile)
 	fmt.Printf("📁 Output location: %s\n", filepath.Join(".", outputFile))
+}
+
+// wrapTextToLines wraps text to fit within a specified number of characters per line
+func wrapTextToLines(text string, maxCharsPerLine int) []string {
+	words := strings.Fields(text)
+	var lines []string
+	var currentLine string
+
+	for _, word := range words {
+		if len(currentLine)+len(word)+1 <= maxCharsPerLine {
+			if currentLine == "" {
+				currentLine = word
+			} else {
+				currentLine += " " + word
+			}
+		} else {
+			if currentLine != "" {
+				lines = append(lines, currentLine)
+				currentLine = word
+			} else {
+				// Word is longer than maxCharsPerLine, add it anyway
+				lines = append(lines, word)
+			}
+		}
+	}
+
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
 }
