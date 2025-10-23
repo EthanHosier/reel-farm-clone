@@ -12,6 +12,8 @@ Add idempotency and race condition protection for spending credits
 Use signed urls for the ai avatar thumbnails and vids?
 Refac the ai-generate video service to move the signing of urls into the service layer and the db types shouldnt leak into the handler?
 
+Instead of the handler having /api before all of them, just do the translation at the frontend -> cloudfront?
+
 ## Stripe
 
 Race conditions during payment account creation

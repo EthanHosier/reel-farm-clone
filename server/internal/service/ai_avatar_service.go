@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -226,8 +227,14 @@ func (s *AIAvatarService) addTextOverlay(inputPath, text, outputPath string) err
 	}
 	defer os.Remove(tempTextFile)
 
+	// Check if font file exists
+	fontPath := "./TikTokDisplay-Medium.ttf"
+	if _, err := os.Stat(fontPath); os.IsNotExist(err) {
+		return fmt.Errorf("font file not found at %s", fontPath)
+	}
+
 	// FFmpeg command to add text overlay
-	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=./TikTokDisplay-Medium.ttf:fontsize=36:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black:text_align=center:line_spacing=16", tempTextFile)
+	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=%s:fontsize=36:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black:text_align=center:line_spacing=16", tempTextFile, fontPath)
 
 	cmd := exec.Command("ffmpeg",
 		"-i", inputPath,
@@ -237,7 +244,17 @@ func (s *AIAvatarService) addTextOverlay(inputPath, text, outputPath string) err
 		outputPath,
 	)
 
-	return cmd.Run()
+	// Capture both stdout and stderr for better error reporting
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("ffmpeg failed: %w, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	return nil
 }
 
 // extractThumbnail extracts thumbnail from video
@@ -251,7 +268,17 @@ func (s *AIAvatarService) extractThumbnail(videoPath, thumbnailPath string) erro
 		thumbnailPath,
 	)
 
-	return cmd.Run()
+	// Capture both stdout and stderr for better error reporting
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("ffmpeg thumbnail extraction failed: %w, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+	}
+
+	return nil
 }
 
 // uploadFile uploads a file to S3
