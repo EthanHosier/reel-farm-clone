@@ -670,3 +670,85 @@ func (s *APIServer) CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
+
+// GetUserGeneratedVideos handles GET /user-generated-videos
+func (s *APIServer) GetUserGeneratedVideos(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract user ID from context
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
+	// Get user-generated videos from service
+	userGeneratedVideos, err := s.aiAvatarService.GetUserGeneratedVideosByUserID(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to retrieve user-generated videos",
+		})
+		return
+	}
+
+	// Convert to API response format
+	var videoResponses []api.UserGeneratedVideo
+	for _, video := range userGeneratedVideos {
+		// Generate signed CloudFront URLs for each video (24 hour expiration)
+		videoPath := fmt.Sprintf("user-generated-videos/videos/%s", video.GeneratedVideoFilename)
+		thumbnailPath := fmt.Sprintf("user-generated-videos/thumbnails/%s", video.ThumbnailFilename)
+
+		videoURL, err := s.aiAvatarService.GenerateSignedURL(videoPath, 24*time.Hour)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(api.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to generate signed video URL",
+			})
+			return
+		}
+
+		thumbnailURL, err := s.aiAvatarService.GenerateSignedURL(thumbnailPath, 24*time.Hour)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(api.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to generate signed thumbnail URL",
+			})
+			return
+		}
+
+		videoResponses = append(videoResponses, api.UserGeneratedVideo{
+			Id:              openapi_types.UUID(video.ID),
+			UserId:          openapi_types.UUID(video.UserID.Bytes),
+			AiAvatarVideoId: openapi_types.UUID(video.AiAvatarVideoID.Bytes),
+			OverlayText:     video.OverlayText,
+			VideoUrl:        videoURL,
+			ThumbnailUrl:    thumbnailURL,
+			Status:          api.UserGeneratedVideoStatus(*video.Status),
+			CreatedAt:       video.CreatedAt,
+		})
+	}
+
+	response := api.UserGeneratedVideosResponse{
+		Videos: videoResponses,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}

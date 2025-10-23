@@ -206,6 +206,12 @@ type UserGeneratedVideoResponse struct {
 	Video UserGeneratedVideo `json:"video"`
 }
 
+// UserGeneratedVideosResponse defines model for UserGeneratedVideosResponse.
+type UserGeneratedVideosResponse struct {
+	// Videos List of user-generated videos
+	Videos []UserGeneratedVideo `json:"videos"`
+}
+
 // GetHooksParams defines parameters for GetHooks.
 type GetHooksParams struct {
 	// Limit Number of hooks to return
@@ -253,6 +259,9 @@ type ServerInterface interface {
 	// Get current user account
 	// (GET /user)
 	GetUserAccount(w http.ResponseWriter, r *http.Request)
+	// Get user-generated videos
+	// (GET /user-generated-videos)
+	GetUserGeneratedVideos(w http.ResponseWriter, r *http.Request)
 	// Generate a video with text overlay
 	// (POST /user-generated-videos)
 	CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Request)
@@ -453,6 +462,26 @@ func (siw *ServerInterfaceWrapper) GetUserAccount(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// GetUserGeneratedVideos operation middleware
+func (siw *ServerInterfaceWrapper) GetUserGeneratedVideos(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserGeneratedVideos(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateUserGeneratedVideo operation middleware
 func (siw *ServerInterfaceWrapper) CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Request) {
 
@@ -601,6 +630,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
 	m.HandleFunc("GET "+options.BaseURL+"/user", wrapper.GetUserAccount)
+	m.HandleFunc("GET "+options.BaseURL+"/user-generated-videos", wrapper.GetUserGeneratedVideos)
 	m.HandleFunc("POST "+options.BaseURL+"/user-generated-videos", wrapper.CreateUserGeneratedVideo)
 
 	return m
