@@ -5,6 +5,14 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -265,6 +273,18 @@ resource "aws_ecs_task_definition" "main" {
         {
           name = "OPENAI_API_KEY"
           value = var.openai_api_key
+        },
+        {
+          name = "CLOUDFRONT_DOMAIN",
+          value = aws_cloudfront_distribution.main.domain_name
+        },
+        {
+          name = "CLOUDFRONT_KEY_PAIR_ID",
+          value = aws_cloudfront_public_key.signed_urls.id
+        },
+        {
+          name = "CLOUDFRONT_PRIVATE_KEY",
+          value = tls_private_key.cloudfront_signing.private_key_pem
         }
       ])
 
@@ -354,6 +374,50 @@ resource "aws_s3_bucket_public_access_block" "main" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# CORS configuration for video content
+resource "aws_s3_bucket_cors_configuration" "main" {
+  bucket = aws_s3_bucket.main.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = [
+      "http://localhost:3000",
+      "http://localhost:5173", 
+      "https://*.vercel.app"
+    ]
+    expose_headers  = ["ETag", "Content-Length", "Content-Type"]
+    max_age_seconds = 3600
+  }
+}
+
+# S3 Bucket Policy for CloudFront Access
+resource "aws_s3_bucket_policy" "cloudfront_access" {
+  bucket = aws_s3_bucket.main.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_cloudfront_origin_access_identity.content_oai.iam_arn
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.main.arn}/ai-avatar/*"
+      },
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_cloudfront_origin_access_identity.content_oai.iam_arn
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.main.arn}/user-generated-videos/*"
+      }
+    ]
+  })
 }
 
 # ECR Repository
@@ -477,6 +541,31 @@ resource "aws_acm_certificate" "main" {
   }
 }
 
+# CloudFront Origin Access Identity for S3
+resource "aws_cloudfront_origin_access_identity" "content_oai" {
+  comment = "${var.project_name}-content-oai"
+}
+
+# Generate RSA key pair for CloudFront signed URLs
+resource "tls_private_key" "cloudfront_signing" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+# CloudFront Public Key for signed URLs
+resource "aws_cloudfront_public_key" "signed_urls" {
+  comment     = "${var.project_name}-signed-urls-key"
+  encoded_key = tls_private_key.cloudfront_signing.public_key_pem
+  name        = "${var.project_name}-signed-urls-public-key"
+}
+
+# CloudFront Key Group for signed URLs
+resource "aws_cloudfront_key_group" "signed_urls" {
+  comment = "${var.project_name}-signed-urls-key-group"
+  items   = [aws_cloudfront_public_key.signed_urls.id]
+  name    = "${var.project_name}-signed-urls-key-group"
+}
+
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "main" {
   origin {
@@ -488,6 +577,16 @@ resource "aws_cloudfront_distribution" "main" {
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # S3 origin for video content
+  origin {
+    domain_name = aws_s3_bucket.main.bucket_regional_domain_name
+    origin_id   = "${var.project_name}-s3-content"
+    
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.content_oai.cloudfront_access_identity_path
     }
   }
 
@@ -525,6 +624,52 @@ resource "aws_cloudfront_distribution" "main" {
     min_ttl                = 0
     default_ttl            = 0
     max_ttl                = 0
+  }
+
+  # Cache behavior for AI avatar video content (public)
+  ordered_cache_behavior {
+    path_pattern     = "/ai-avatar/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "${var.project_name}-s3-content"
+    
+    forwarded_values {
+      query_string = false
+      headers      = ["Range"]  # Enable video seeking
+      cookies {
+        forward = "none"
+      }
+    }
+    
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl               = 0
+    default_ttl           = 86400    # 24 hours
+    max_ttl               = 31536000 # 1 year
+  }
+
+  # Cache behavior for user-generated video content (signed URLs)
+  ordered_cache_behavior {
+    path_pattern     = "/user-generated-videos/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "${var.project_name}-s3-content"
+    
+    trusted_key_groups = [aws_cloudfront_key_group.signed_urls.id]
+    
+    forwarded_values {
+      query_string = true  # Allow query parameters for signed URLs
+      headers      = ["Range"]  # Enable video seeking
+      cookies {
+        forward = "none"
+      }
+    }
+    
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl               = 0
+    default_ttl           = 0        # Don't cache signed URLs
+    max_ttl               = 0        # Don't cache signed URLs
   }
 
   price_class = "PriceClass_100"

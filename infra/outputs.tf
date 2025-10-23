@@ -82,3 +82,15 @@ output "cloudfront_url" {
   description = "HTTPS URL of the CloudFront distribution"
   value       = "https://${aws_cloudfront_distribution.main.domain_name}"
 }
+
+output "cloudfront_key_pair_id" {
+  description = "CloudFront key pair ID for signed URLs"
+  value       = aws_cloudfront_public_key.signed_urls.id
+  sensitive   = true
+}
+
+output "cloudfront_private_key" {
+  description = "CloudFront private key for signed URLs"
+  value       = tls_private_key.cloudfront_signing.private_key_pem
+  sensitive   = true
+}

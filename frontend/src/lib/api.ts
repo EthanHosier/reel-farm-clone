@@ -1,7 +1,9 @@
 import { HooksService } from "@/api";
 import { OpenAPI } from "@/api/core/OpenAPI";
+import { AiAvatarService } from "@/api/services/AiAvatarService";
 import { HealthService } from "@/api/services/HealthService";
 import { SubscriptionsService } from "@/api/services/SubscriptionsService";
+import { UserGeneratedVideosService } from "@/api/services/UserGeneratedVideosService";
 import { UsersService } from "@/api/services/UsersService";
 
 // Get API URL from environment variable
@@ -30,10 +32,14 @@ export const api = {
   users: UsersService,
   subscriptions: SubscriptionsService,
   hooks: HooksService,
+  aiAvatar: AiAvatarService,
+  userGeneratedVideos: UserGeneratedVideosService,
 };
 
 // Re-export types for convenience
 export type {
+  AIAvatarVideosResponse,
+  AIAvatarVideo,
   HealthResponse,
   UserAccount,
   CreateCheckoutSessionRequest,
@@ -44,4 +50,8 @@ export type {
   GenerateHooksRequest,
   GenerateHooksResponse,
   GetHooksResponse,
+  UserGeneratedVideo,
+  UserGeneratedVideosResponse,
+  CreateUserGeneratedVideoRequest,
+  UserGeneratedVideoResponse,
 } from "@/api";

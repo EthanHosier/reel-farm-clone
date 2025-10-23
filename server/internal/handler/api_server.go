@@ -2,9 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/ethanhosier/reel-farm/db"
 	"github.com/ethanhosier/reel-farm/internal/api"
 	"github.com/ethanhosier/reel-farm/internal/context_keys"
 	"github.com/ethanhosier/reel-farm/internal/service"
@@ -17,15 +20,49 @@ type APIServer struct {
 	userService         *service.UserService
 	subscriptionService *service.SubscriptionService
 	hookService         *service.HookService
+	aiAvatarService     *service.AIAvatarService
 }
 
 // NewAPIServer creates a new API server handler
-func NewAPIServer(userService *service.UserService, subscriptionService *service.SubscriptionService, hookService *service.HookService) *APIServer {
+func NewAPIServer(userService *service.UserService, subscriptionService *service.SubscriptionService, hookService *service.HookService, aiAvatarService *service.AIAvatarService) *APIServer {
 	return &APIServer{
 		userService:         userService,
 		subscriptionService: subscriptionService,
 		hookService:         hookService,
+		aiAvatarService:     aiAvatarService,
 	}
+}
+
+// generateCloudFrontURL creates a CloudFront URL for a given path
+func (s *APIServer) generateCloudFrontURL(path string) (string, error) {
+	cloudfrontDomain := os.Getenv("CLOUDFRONT_DOMAIN")
+	if cloudfrontDomain == "" {
+		return "", fmt.Errorf("CLOUDFRONT_DOMAIN is not set")
+	}
+	return fmt.Sprintf("https://%s/%s", cloudfrontDomain, path), nil
+}
+
+// toVideoAPIResponse converts a database video to API response format
+func (s *APIServer) toVideoAPIResponse(video *db.AiAvatarVideo) (*api.AIAvatarVideo, error) {
+	videoPath := fmt.Sprintf("ai-avatar/videos/%s", video.Filename)
+	thumbnailPath := fmt.Sprintf("ai-avatar/thumbnails/%s", video.ThumbnailFilename)
+
+	videoURL, err := s.generateCloudFrontURL(videoPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate video URL: %w", err)
+	}
+	thumbnailURL, err := s.generateCloudFrontURL(thumbnailPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate thumbnail URL: %w", err)
+	}
+
+	return &api.AIAvatarVideo{
+		Id:           openapi_types.UUID(video.ID),
+		Title:        video.Title,
+		VideoUrl:     videoURL,
+		ThumbnailUrl: thumbnailURL,
+		UpdatedAt:    video.UpdatedAt,
+	}, nil
 }
 
 // GetHealth handles GET /health
@@ -47,6 +84,42 @@ func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to JSON and send
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetAIAvatarVideos handles GET /ai-avatar/videos
+func (s *APIServer) GetAIAvatarVideos(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	videos, err := s.aiAvatarService.GetAllVideos(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to retrieve videos",
+		})
+		return
+	}
+
+	// Convert videos to API response format
+	var videoResponses []api.AIAvatarVideo
+	for _, video := range videos {
+		videoResponse, err := s.toVideoAPIResponse(video)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(api.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to convert video to API response: " + err.Error(),
+			})
+			return
+		}
+		videoResponses = append(videoResponses, *videoResponse)
+	}
+
+	response := api.AIAvatarVideosResponse{
+		Videos: videoResponses,
+	}
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -480,5 +553,202 @@ func (s *APIServer) DeleteHook(w http.ResponseWriter, r *http.Request, hookId op
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CreateUserGeneratedVideo handles POST /user-generated-videos
+func (s *APIServer) CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract user ID from context
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
+	// Parse request body
+	var req api.CreateUserGeneratedVideoRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "Invalid request body",
+		})
+		return
+	}
+
+	// Parse AI avatar video ID
+	aiAvatarVideoID := uuid.UUID(req.AiAvatarVideoId)
+
+	// Get the AI avatar video to get its URL
+	aiAvatarVideo, err := s.aiAvatarService.GetVideoByID(r.Context(), aiAvatarVideoID)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "video_not_found",
+			Message: "AI avatar video not found",
+		})
+		return
+	}
+
+	// Generate CloudFront URL for the video
+	videoPath := fmt.Sprintf("ai-avatar/videos/%s", aiAvatarVideo.Filename)
+	videoURL, err := s.generateCloudFrontURL(videoPath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to generate video URL",
+		})
+		return
+	}
+
+	// Process video with text overlay
+	userGeneratedVideo, err := s.aiAvatarService.ProcessVideoWithTextOverlay(r.Context(), userID, aiAvatarVideoID, videoURL, req.OverlayText)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "processing_error",
+			Message: "Failed to process video with text overlay" + err.Error(),
+		})
+		return
+	}
+
+	// Generate signed CloudFront URLs for the generated video (24 hour expiration)
+	generatedVideoPath := fmt.Sprintf("user-generated-videos/videos/%s", userGeneratedVideo.GeneratedVideoFilename)
+	generatedThumbnailPath := fmt.Sprintf("user-generated-videos/thumbnails/%s", userGeneratedVideo.ThumbnailFilename)
+
+	generatedVideoURL, err := s.aiAvatarService.GenerateSignedURL(generatedVideoPath, 24*time.Hour)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to generate signed video URL",
+		})
+		return
+	}
+
+	generatedThumbnailURL, err := s.aiAvatarService.GenerateSignedURL(generatedThumbnailPath, 24*time.Hour)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to generate signed thumbnail URL",
+		})
+		return
+	}
+
+	// Create response
+	response := api.UserGeneratedVideoResponse{
+		Video: api.UserGeneratedVideo{
+			Id:              openapi_types.UUID(userGeneratedVideo.ID),
+			UserId:          openapi_types.UUID(userGeneratedVideo.UserID.Bytes),
+			AiAvatarVideoId: openapi_types.UUID(userGeneratedVideo.AiAvatarVideoID.Bytes),
+			OverlayText:     userGeneratedVideo.OverlayText,
+			VideoUrl:        generatedVideoURL,
+			ThumbnailUrl:    generatedThumbnailURL,
+			Status:          api.UserGeneratedVideoStatus(*userGeneratedVideo.Status),
+			CreatedAt:       userGeneratedVideo.CreatedAt,
+		},
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetUserGeneratedVideos handles GET /user-generated-videos
+func (s *APIServer) GetUserGeneratedVideos(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract user ID from context
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
+	// Get user-generated videos from service
+	userGeneratedVideos, err := s.aiAvatarService.GetUserGeneratedVideosByUserID(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to retrieve user-generated videos",
+		})
+		return
+	}
+
+	// Convert to API response format
+	var videoResponses []api.UserGeneratedVideo
+	for _, video := range userGeneratedVideos {
+		// Generate signed CloudFront URLs for each video (24 hour expiration)
+		videoPath := fmt.Sprintf("user-generated-videos/videos/%s", video.GeneratedVideoFilename)
+		thumbnailPath := fmt.Sprintf("user-generated-videos/thumbnails/%s", video.ThumbnailFilename)
+
+		videoURL, err := s.aiAvatarService.GenerateSignedURL(videoPath, 24*time.Hour)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(api.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to generate signed video URL",
+			})
+			return
+		}
+
+		thumbnailURL, err := s.aiAvatarService.GenerateSignedURL(thumbnailPath, 24*time.Hour)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(api.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to generate signed thumbnail URL",
+			})
+			return
+		}
+
+		videoResponses = append(videoResponses, api.UserGeneratedVideo{
+			Id:              openapi_types.UUID(video.ID),
+			UserId:          openapi_types.UUID(video.UserID.Bytes),
+			AiAvatarVideoId: openapi_types.UUID(video.AiAvatarVideoID.Bytes),
+			OverlayText:     video.OverlayText,
+			VideoUrl:        videoURL,
+			ThumbnailUrl:    thumbnailURL,
+			Status:          api.UserGeneratedVideoStatus(*video.Status),
+			CreatedAt:       video.CreatedAt,
+		})
+	}
+
+	response := api.UserGeneratedVideosResponse{
+		Videos: videoResponses,
+	}
+
 	json.NewEncoder(w).Encode(response)
 }
