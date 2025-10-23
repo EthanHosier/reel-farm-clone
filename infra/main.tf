@@ -356,6 +356,42 @@ resource "aws_s3_bucket_public_access_block" "main" {
   restrict_public_buckets = true
 }
 
+# CORS configuration for video content
+resource "aws_s3_bucket_cors_configuration" "main" {
+  bucket = aws_s3_bucket.main.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = [
+      "http://localhost:3000",
+      "http://localhost:5173", 
+      "https://*.vercel.app"
+    ]
+    expose_headers  = ["ETag", "Content-Length", "Content-Type"]
+    max_age_seconds = 3600
+  }
+}
+
+# S3 Bucket Policy for CloudFront Access
+resource "aws_s3_bucket_policy" "cloudfront_access" {
+  bucket = aws_s3_bucket.main.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_cloudfront_origin_access_identity.content_oai.iam_arn
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.main.arn}/ai-avatar/*"
+      }
+    ]
+  })
+}
+
 # ECR Repository
 resource "aws_ecr_repository" "main" {
   name                 = var.project_name
@@ -477,6 +513,11 @@ resource "aws_acm_certificate" "main" {
   }
 }
 
+# CloudFront Origin Access Identity for S3
+resource "aws_cloudfront_origin_access_identity" "content_oai" {
+  comment = "${var.project_name}-content-oai"
+}
+
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "main" {
   origin {
@@ -488,6 +529,16 @@ resource "aws_cloudfront_distribution" "main" {
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # S3 origin for video content
+  origin {
+    domain_name = aws_s3_bucket.main.bucket_regional_domain_name
+    origin_id   = "${var.project_name}-s3-content"
+    
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.content_oai.cloudfront_access_identity_path
     }
   }
 
@@ -525,6 +576,28 @@ resource "aws_cloudfront_distribution" "main" {
     min_ttl                = 0
     default_ttl            = 0
     max_ttl                = 0
+  }
+
+  # Cache behavior for video content
+  ordered_cache_behavior {
+    path_pattern     = "/ai-avatar/*"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "${var.project_name}-s3-content"
+    
+    forwarded_values {
+      query_string = false
+      headers      = ["Range"]  # Enable video seeking
+      cookies {
+        forward = "none"
+      }
+    }
+    
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl               = 0
+    default_ttl           = 86400    # 24 hours
+    max_ttl               = 31536000 # 1 year
   }
 
   price_class = "PriceClass_100"

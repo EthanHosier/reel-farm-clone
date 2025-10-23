@@ -24,15 +24,20 @@ type Querier interface {
 	GetStaleReservedTxns(ctx context.Context) ([]*GetStaleReservedTxnsRow, error)
 	GetTxnByRequestID(ctx context.Context, requestID string) (*CreditTxn, error)
 	GetTxnStatus(ctx context.Context, id uuid.UUID) (string, error)
-	GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccount, error)
-	GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error)
 	GetUserHookCount(ctx context.Context, userID pgtype.UUID) (int64, error)
 	MarkTxnRefunded(ctx context.Context, id uuid.UUID) error
 	RefundCredits(ctx context.Context, arg *RefundCreditsParams) error
 	RemoveCreditsFromUser(ctx context.Context, arg *RemoveCreditsFromUserParams) error
 	ReserveCredits(ctx context.Context, arg *ReserveCreditsParams) (*ReserveCreditsRow, error)
+	CreateVideo(ctx context.Context, arg *CreateVideoParams) (*Video, error)
+	DeleteVideo(ctx context.Context, id uuid.UUID) error
+	GetAllVideos(ctx context.Context) ([]*Video, error)
+	GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccount, error)
+	GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error)
+	GetVideoByID(ctx context.Context, id uuid.UUID) (*Video, error)
 	UpdateUserBillingCustomerID(ctx context.Context, arg *UpdateUserBillingCustomerIDParams) error
 	UpdateUserPlan(ctx context.Context, arg *UpdateUserPlanParams) error
+	UpdateVideo(ctx context.Context, arg *UpdateVideoParams) (*Video, error)
 }
 
 var _ Querier = (*Queries)(nil)
