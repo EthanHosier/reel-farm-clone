@@ -31,8 +31,11 @@ WORKDIR /root/
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
 
+# Copy the font file
+COPY --from=builder /app/TikTokDisplay-Medium.ttf .
+
 # Change ownership to non-root user
-RUN chown appuser:appgroup main
+RUN chown appuser:appgroup main TikTokDisplay-Medium.ttf
 
 # Switch to non-root user
 USER appuser

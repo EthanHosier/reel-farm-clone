@@ -16,9 +16,42 @@ import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
 import { useUserGeneratedVideos } from "./queries/useUserGeneratedVideos";
 import { useCreateUserGeneratedVideo } from "./queries/useCreateUserGeneratedVideo";
 import { useSubscriptionMutations } from "./queries/useSubscriptionMutations";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 export default function Dashboard() {
+  // Text wrapping function to match FFmpeg behavior
+  const wrapTextToLines = (text: string, maxCharsPerLine: number): string[] => {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      // Check if adding this word would exceed the limit
+      const testLine = currentLine === "" ? word : currentLine + " " + word;
+
+      if (testLine.length <= maxCharsPerLine) {
+        currentLine = testLine;
+      } else {
+        // If current line is not empty, push it and start a new line
+        if (currentLine !== "") {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          // If even a single word exceeds the limit, push it anyway
+          lines.push(word);
+          currentLine = "";
+        }
+      }
+    }
+
+    // Add the last line if it's not empty
+    if (currentLine !== "") {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  };
+
   const { user, session, signOut } = useAuth();
   const {
     data: health,
@@ -78,6 +111,29 @@ export default function Dashboard() {
     string | null
   >(null);
   const [overlayText, setOverlayText] = useState("");
+  const [calculatedFontSize, setCalculatedFontSize] = useState(18);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  // Calculate font size based on video container dimensions
+  useEffect(() => {
+    const calculateFontSize = () => {
+      if (videoContainerRef.current) {
+        const containerHeight = videoContainerRef.current.offsetHeight;
+        // FFmpeg uses 36px font for 1280px height video
+        // So font size = (container height / 1280) * 36
+        const fontSize = Math.floor((containerHeight / 1280) * 36);
+        setCalculatedFontSize(fontSize); // Clamp between 12-24px
+      }
+    };
+
+    calculateFontSize();
+
+    // Recalculate on window resize
+    const handleResize = () => calculateFontSize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, [selectedVideo]); // Recalculate when video changes
 
   // Set default selected video when videos load
   React.useEffect(() => {
@@ -399,11 +455,16 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle>Video Preview</CardTitle>
                 <CardDescription>
-                  Click on any thumbnail above to preview the video
+                  Click on any thumbnail above to preview the video. Text
+                  overlay preview appears when you type in the generation form
+                  below.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-[9/16] bg-black rounded-lg overflow-hidden max-w-sm mx-auto">
+                <div
+                  ref={videoContainerRef}
+                  className="aspect-[9/16] bg-black rounded-lg overflow-hidden max-w-sm mx-auto relative"
+                >
                   <video
                     src={selectedVideo}
                     controls
@@ -412,6 +473,29 @@ export default function Dashboard() {
                   >
                     Your browser does not support the video tag.
                   </video>
+                  {overlayText && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center px-4">
+                        {wrapTextToLines(overlayText, 35).map((line, index) => (
+                          <div
+                            key={index}
+                            className="text-white leading-tight"
+                            style={{
+                              fontFamily:
+                                '"TikTokDisplay-Medium", Arial, sans-serif',
+                              lineHeight: "1.4",
+                              fontSize: `${calculatedFontSize}px`,
+                              textShadow:
+                                "1px 1px 1px black, 1px -1px 1px black, -1px 1px 1px black, -1px -1px 1px black",
+                              // WebkitTextStroke: "1px black",
+                            }}
+                          >
+                            {line}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

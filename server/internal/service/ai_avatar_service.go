@@ -227,7 +227,7 @@ func (s *AIAvatarService) addTextOverlay(inputPath, text, outputPath string) err
 	defer os.Remove(tempTextFile)
 
 	// FFmpeg command to add text overlay
-	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=/System/Library/Fonts/Arial.ttf:fontsize=36:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black:text_align=center:line_spacing=16", tempTextFile)
+	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=./TikTokDisplay-Medium.ttf:fontsize=36:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black:text_align=center:line_spacing=16", tempTextFile)
 
 	cmd := exec.Command("ffmpeg",
 		"-i", inputPath,

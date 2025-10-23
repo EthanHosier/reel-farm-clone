@@ -57,7 +57,7 @@ func main() {
 
 	// Create output filename
 	baseName := strings.TrimSuffix(filepath.Base(firstVideo), filepath.Ext(firstVideo))
-	outputFile := fmt.Sprintf("%s_with_text.mp4", baseName)
+	outputFile := fmt.Sprintf("%s_with_text2.mp4", baseName)
 
 	// Wrap text if it's too long (approximately 35 characters per line for 36px font)
 	wrappedLines := wrapTextToLines(text, 35)
@@ -79,6 +79,8 @@ func main() {
 	defer os.Remove(tempTextFile) // Clean up the temp file
 
 	// Use textfile parameter instead of inline text
+	// videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=TikTokDisplay-Medium.ttf:fontsize=36:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black:text_align=center:line_spacing=16", tempTextFile)
+
 	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=TikTokDisplay-Medium.ttf:fontsize=36:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=3:bordercolor=black:text_align=center:line_spacing=16", tempTextFile)
 
 	cmd := exec.Command("ffmpeg",
