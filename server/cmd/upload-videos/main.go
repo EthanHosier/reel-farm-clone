@@ -223,6 +223,7 @@ func (u *VideoUploader) UploadVideo(videoPath string) error {
 	// Save to database
 	fileSize := fileInfo.Size()
 	_, err = u.service.CreateVideo(context.Background(), &db.CreateVideoParams{
+		ID:                id,
 		Title:             title,
 		Description:       nil, // No description for now
 		Filename:          videoFilename,
