@@ -16,6 +16,7 @@ import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
 import { useUserGeneratedVideos } from "./queries/useUserGeneratedVideos";
 import { useCreateUserGeneratedVideo } from "./queries/useCreateUserGeneratedVideo";
 import { useSubscriptionMutations } from "./queries/useSubscriptionMutations";
+import { useHooks } from "./queries/useHooks";
 import React, { useState, useRef, useEffect } from "react";
 
 export default function Dashboard() {
@@ -73,6 +74,7 @@ export default function Dashboard() {
     isLoading: userVideosLoading,
     error: userVideosError,
   } = useUserGeneratedVideos();
+  const { data: hooks, isLoading: hooksLoading } = useHooks(50, 0); // Get more hooks for navigation
 
   // Video generation mutation
   const createVideoMutation = useCreateUserGeneratedVideo({
@@ -114,6 +116,10 @@ export default function Dashboard() {
   const [calculatedFontSize, setCalculatedFontSize] = useState(18);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
+  // Hook navigation and editing state
+  const [currentHookIndex, setCurrentHookIndex] = useState(0);
+  const [editableText, setEditableText] = useState("");
+
   // Calculate font size based on video container dimensions
   useEffect(() => {
     const calculateFontSize = () => {
@@ -135,6 +141,14 @@ export default function Dashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, [selectedVideo]); // Recalculate when video changes
 
+  // Initialize editable text when hooks load
+  useEffect(() => {
+    if (hooks && hooks.hooks.length > 0) {
+      setEditableText(hooks.hooks[currentHookIndex]?.text || "");
+      setOverlayText(hooks.hooks[currentHookIndex]?.text || "");
+    }
+  }, [hooks, currentHookIndex]);
+
   // Set default selected video when videos load
   React.useEffect(() => {
     if (aiAvatarVideos && aiAvatarVideos.videos.length > 0 && !selectedVideo) {
@@ -148,6 +162,28 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  // Hook navigation functions
+  const handlePreviousHook = () => {
+    if (hooks && hooks.hooks.length > 0) {
+      const newIndex =
+        currentHookIndex > 0 ? currentHookIndex - 1 : hooks.hooks.length - 1;
+      setCurrentHookIndex(newIndex);
+    }
+  };
+
+  const handleNextHook = () => {
+    if (hooks && hooks.hooks.length > 0) {
+      const newIndex =
+        currentHookIndex < hooks.hooks.length - 1 ? currentHookIndex + 1 : 0;
+      setCurrentHookIndex(newIndex);
+    }
+  };
+
+  const handleTextChange = (newText: string) => {
+    setEditableText(newText);
+    setOverlayText(newText);
   };
 
   const handleUpgradeToPro = () => {
@@ -402,31 +438,64 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle>Generate Video with Text Overlay</CardTitle>
                 <CardDescription>
-                  Add your own text to the selected AI avatar video
+                  Navigate through your hooks and edit the text before
+                  generating
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {/* Hook Navigation */}
+                  {hooks && hooks.hooks.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>
+                        Select Hook ({currentHookIndex + 1} of{" "}
+                        {hooks.hooks.length})
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePreviousHook}
+                          disabled={hooksLoading}
+                        >
+                          ← Previous
+                        </Button>
+                        <div className="flex-1 text-center text-sm text-gray-600">
+                          {hooks.hooks[currentHookIndex]?.text}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleNextHook}
+                          disabled={hooksLoading}
+                        >
+                          Next →
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Text Editor */}
                   <div>
                     <Label htmlFor="overlay-text">
-                      Text to overlay on video
+                      Edit text for video overlay
                     </Label>
                     <Input
                       id="overlay-text"
                       placeholder="Enter your text here..."
-                      value={overlayText}
-                      onChange={(e) => setOverlayText(e.target.value)}
+                      value={editableText}
+                      onChange={(e) => handleTextChange(e.target.value)}
                       maxLength={500}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {overlayText.length}/500 characters
+                      {editableText.length}/500 characters
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={handleGenerateVideo}
                       disabled={
-                        createVideoMutation.isPending || !overlayText.trim()
+                        createVideoMutation.isPending || !editableText.trim()
                       }
                       className="flex-1"
                     >
@@ -439,6 +508,8 @@ export default function Dashboard() {
                       onClick={() => {
                         setSelectedAvatarVideoId(null);
                         setOverlayText("");
+                        setEditableText("");
+                        setCurrentHookIndex(0);
                       }}
                     >
                       Cancel
@@ -485,9 +556,9 @@ export default function Dashboard() {
                                 '"TikTokDisplay-Medium", Arial, sans-serif',
                               lineHeight: "1.4",
                               fontSize: `${calculatedFontSize}px`,
+
                               textShadow:
-                                "1px 1px 1px black, 1px -1px 1px black, -1px 1px 1px black, -1px -1px 1px black",
-                              // WebkitTextStroke: "1px black",
+                                "1px 1px 0px black, 1px -1px 0px black, -1px 1px 0px black, -1px -1px 0px black",
                             }}
                           >
                             {line}
