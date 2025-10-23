@@ -1,5 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -11,11 +13,15 @@ import { useHealth } from "./queries/useHealth";
 import { useUser } from "./queries/useUser";
 import { HooksManager } from "./components/HooksManager";
 import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
+import { useUserGeneratedVideos } from "./queries/useUserGeneratedVideos";
 import { api } from "@/lib/api";
 import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CACHE_KEYS } from "@/lib/cacheKeys";
 
 export default function Dashboard() {
   const { user, session, signOut } = useAuth();
+  const queryClient = useQueryClient();
   const {
     data: health,
     isLoading: healthLoading,
@@ -31,6 +37,11 @@ export default function Dashboard() {
     isLoading: videosLoading,
     error: videosError,
   } = useAIAvatarVideos();
+  const {
+    data: userGeneratedVideos,
+    isLoading: userVideosLoading,
+    error: userVideosError,
+  } = useUserGeneratedVideos();
 
   // Subscription state
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
@@ -38,6 +49,13 @@ export default function Dashboard() {
 
   // Video preview state
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+  // Video generation state
+  const [selectedAvatarVideoId, setSelectedAvatarVideoId] = useState<
+    string | null
+  >(null);
+  const [overlayText, setOverlayText] = useState("");
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   // Set default selected video when videos load
   React.useEffect(() => {
@@ -87,6 +105,38 @@ export default function Dashboard() {
       alert("Failed to open customer portal. Please try again.");
     } finally {
       setIsCreatingPortal(false);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!selectedAvatarVideoId || !overlayText.trim()) {
+      alert("Please select a video and enter some text");
+      return;
+    }
+
+    setIsGeneratingVideo(true);
+    try {
+      await api.userGeneratedVideos.createUserGeneratedVideo({
+        ai_avatar_video_id: selectedAvatarVideoId,
+        overlay_text: overlayText.trim(),
+      });
+
+      // Show success message
+      alert("Video generated successfully!");
+
+      // Clear the form
+      setOverlayText("");
+      setSelectedAvatarVideoId(null);
+
+      // Refresh the user-generated videos list
+      await queryClient.invalidateQueries({
+        queryKey: CACHE_KEYS.USER_GENERATED_VIDEOS,
+      });
+    } catch (error) {
+      console.error("Error generating video:", error);
+      alert("Failed to generate video. Please try again.");
+    } finally {
+      setIsGeneratingVideo(false);
     }
   };
 
@@ -265,7 +315,8 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle>AI Avatar Videos</CardTitle>
               <CardDescription>
-                Click on a thumbnail to watch the video
+                Click on a thumbnail to watch the video, or select one to add
+                your own text overlay
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -280,7 +331,11 @@ export default function Dashboard() {
                   {aiAvatarVideos.videos.map((video) => (
                     <div
                       key={video.id}
-                      className="bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
+                        selectedAvatarVideoId === video.id
+                          ? "ring-2 ring-blue-500"
+                          : ""
+                      }`}
                       onClick={() => setSelectedVideo(video.video_url)}
                     >
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
@@ -289,6 +344,27 @@ export default function Dashboard() {
                           alt={video.title}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                         />
+                      </div>
+                      <div className="p-2">
+                        <p
+                          className="text-xs text-gray-600 truncate"
+                          title={video.title}
+                        >
+                          {video.title}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full mt-1 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAvatarVideoId(video.id);
+                          }}
+                        >
+                          {selectedAvatarVideoId === video.id
+                            ? "Selected"
+                            : "Select"}
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -301,6 +377,55 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Video Generation Form */}
+          {selectedAvatarVideoId && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Generate Video with Text Overlay</CardTitle>
+                <CardDescription>
+                  Add your own text to the selected AI avatar video
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="overlay-text">
+                      Text to overlay on video
+                    </Label>
+                    <Input
+                      id="overlay-text"
+                      placeholder="Enter your text here..."
+                      value={overlayText}
+                      onChange={(e) => setOverlayText(e.target.value)}
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {overlayText.length}/500 characters
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleGenerateVideo}
+                      disabled={isGeneratingVideo || !overlayText.trim()}
+                      className="flex-1"
+                    >
+                      {isGeneratingVideo ? "Generating..." : "Generate Video"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedAvatarVideoId(null);
+                        setOverlayText("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Video Preview Section */}
           {selectedVideo && (
@@ -325,6 +450,76 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
+
+          {/* User Generated Videos Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>My Generated Videos</CardTitle>
+              <CardDescription>
+                Videos you've created with custom text overlays
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {userVideosLoading && (
+                <p className="text-blue-600">Loading your videos...</p>
+              )}
+              {userVideosError && (
+                <p className="text-red-600">Error: {userVideosError.message}</p>
+              )}
+              {userGeneratedVideos && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {userGeneratedVideos.videos.map((video) => (
+                    <div
+                      key={video.id}
+                      className="bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => setSelectedVideo(video.video_url)}
+                    >
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={video.thumbnail_url}
+                          alt={`Video with text: ${video.overlay_text}`}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                        />
+                      </div>
+                      <div className="p-2">
+                        <p
+                          className="text-xs text-gray-600 truncate"
+                          title={video.overlay_text}
+                        >
+                          "{video.overlay_text}"
+                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              video.status === "completed"
+                                ? "bg-green-100 text-green-800"
+                                : video.status === "processing"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {video.status}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(video.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {userGeneratedVideos &&
+                userGeneratedVideos.videos.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>You haven't created any videos yet.</p>
+                    <p className="text-sm mt-2">
+                      Select an AI avatar video above and add your own text!
+                    </p>
+                  </div>
+                )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

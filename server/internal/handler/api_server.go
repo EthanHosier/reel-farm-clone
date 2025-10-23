@@ -43,7 +43,7 @@ func (s *APIServer) generateCloudFrontURL(path string) (string, error) {
 }
 
 // toVideoAPIResponse converts a database video to API response format
-func (s *APIServer) toVideoAPIResponse(video *db.AiAvatarVideo) (map[string]interface{}, error) {
+func (s *APIServer) toVideoAPIResponse(video *db.AiAvatarVideo) (*api.AIAvatarVideo, error) {
 	videoPath := fmt.Sprintf("ai-avatar/videos/%s", video.Filename)
 	thumbnailPath := fmt.Sprintf("ai-avatar/thumbnails/%s", video.ThumbnailFilename)
 
@@ -53,15 +53,15 @@ func (s *APIServer) toVideoAPIResponse(video *db.AiAvatarVideo) (map[string]inte
 	}
 	thumbnailURL, err := s.generateCloudFrontURL(thumbnailPath)
 	if err != nil {
-		return map[string]interface{}{}, fmt.Errorf("failed to generate thumbnail URL: %w", err)
+		return nil, fmt.Errorf("failed to generate thumbnail URL: %w", err)
 	}
 
-	return map[string]interface{}{
-		"id":            video.ID,
-		"title":         video.Title,
-		"video_url":     videoURL,
-		"thumbnail_url": thumbnailURL,
-		"updated_at":    video.UpdatedAt,
+	return &api.AIAvatarVideo{
+		Id:           openapi_types.UUID(video.ID),
+		Title:        video.Title,
+		VideoUrl:     videoURL,
+		ThumbnailUrl: thumbnailURL,
+		UpdatedAt:    video.UpdatedAt,
 	}, nil
 }
 
@@ -102,7 +102,7 @@ func (s *APIServer) GetAIAvatarVideos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert videos to API response format
-	var videoResponses []map[string]interface{}
+	var videoResponses []api.AIAvatarVideo
 	for _, video := range videos {
 		videoResponse, err := s.toVideoAPIResponse(video)
 		if err != nil {
@@ -113,11 +113,11 @@ func (s *APIServer) GetAIAvatarVideos(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		videoResponses = append(videoResponses, videoResponse)
+		videoResponses = append(videoResponses, *videoResponse)
 	}
 
-	response := map[string]interface{}{
-		"videos": videoResponses,
+	response := api.AIAvatarVideosResponse{
+		Videos: videoResponses,
 	}
 
 	json.NewEncoder(w).Encode(response)

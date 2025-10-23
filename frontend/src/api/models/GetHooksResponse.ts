@@ -12,5 +12,21 @@ export type GetHooksResponse = {
      * Total number of hooks for the user
      */
     total_count: number;
+    /**
+     * Video title
+     */
+    title?: string;
+    /**
+     * CloudFront URL for video download
+     */
+    video_url?: string;
+    /**
+     * CloudFront URL for thumbnail
+     */
+    thumbnail_url?: string;
+    /**
+     * When the video was last updated
+     */
+    updated_at?: string;
 };
 

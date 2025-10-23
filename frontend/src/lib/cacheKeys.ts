@@ -8,6 +8,9 @@ export const CACHE_KEYS = {
 
   // AI Avatar endpoints
   AI_AVATAR_VIDEOS: ["ai-avatar-videos"] as const,
+
+  // User Generated Videos endpoints
+  USER_GENERATED_VIDEOS: ["user-generated-videos"] as const,
 } as const;
 
 // Type for cache key values

@@ -28,11 +28,20 @@ const (
 
 // AIAvatarVideo defines model for AIAvatarVideo.
 type AIAvatarVideo struct {
-	// Id Unique identifier for the hook
+	// Id Unique identifier for the video
 	Id openapi_types.UUID `json:"id"`
 
-	// Text The hook text content
-	Text *string `json:"text,omitempty"`
+	// ThumbnailUrl CloudFront URL for thumbnail
+	ThumbnailUrl string `json:"thumbnail_url"`
+
+	// Title Video title
+	Title string `json:"title"`
+
+	// UpdatedAt When the video was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// VideoUrl CloudFront URL for video download
+	VideoUrl string `json:"video_url"`
 }
 
 // AIAvatarVideosResponse defines model for AIAvatarVideosResponse.
