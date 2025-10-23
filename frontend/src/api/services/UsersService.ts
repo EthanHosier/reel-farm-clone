@@ -16,7 +16,7 @@ export class UsersService {
     public static getUserAccount(): CancelablePromise<UserAccount> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/user',
+            url: '/api/user',
             errors: {
                 401: `Unauthorized - invalid or missing token`,
                 404: `User account not found`,

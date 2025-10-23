@@ -285,6 +285,10 @@ resource "aws_ecs_task_definition" "main" {
         {
           name = "CLOUDFRONT_PRIVATE_KEY",
           value = tls_private_key.cloudfront_signing.private_key_pem
+        },
+        {
+          name= "S3_BUCKET_NAME",
+          value = aws_s3_bucket.main.bucket
         }
       ])
 
@@ -629,13 +633,13 @@ resource "aws_cloudfront_distribution" "main" {
   # Cache behavior for AI avatar video content (public)
   ordered_cache_behavior {
     path_pattern     = "/ai-avatar/*"
-    allowed_methods  = ["GET", "HEAD"]
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "${var.project_name}-s3-content"
     
     forwarded_values {
       query_string = false
-      headers      = ["Range"]  # Enable video seeking
+      headers      = ["Range", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
       cookies {
         forward = "none"
       }
@@ -651,7 +655,7 @@ resource "aws_cloudfront_distribution" "main" {
   # Cache behavior for user-generated video content (signed URLs)
   ordered_cache_behavior {
     path_pattern     = "/user-generated-videos/*"
-    allowed_methods  = ["GET", "HEAD"]
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "${var.project_name}-s3-content"
     
@@ -659,7 +663,7 @@ resource "aws_cloudfront_distribution" "main" {
     
     forwarded_values {
       query_string = true  # Allow query parameters for signed URLs
-      headers      = ["Range"]  # Enable video seeking
+      headers      = ["Range", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
       cookies {
         forward = "none"
       }

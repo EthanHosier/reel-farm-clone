@@ -18,7 +18,7 @@ export class UserGeneratedVideosService {
     public static getUserGeneratedVideos(): CancelablePromise<UserGeneratedVideosResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/user-generated-videos',
+            url: '/api/user-generated-videos',
             errors: {
                 401: `Unauthorized - invalid or missing token`,
                 500: `Internal server error`,
@@ -37,7 +37,7 @@ export class UserGeneratedVideosService {
     ): CancelablePromise<UserGeneratedVideoResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/user-generated-videos',
+            url: '/api/user-generated-videos',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

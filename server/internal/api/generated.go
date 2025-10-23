@@ -245,34 +245,34 @@ type CreateUserGeneratedVideoJSONRequestBody = CreateUserGeneratedVideoRequest
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get all AI avatar videos
-	// (GET /ai-avatar/videos)
+	// (GET /api/ai-avatar/videos)
 	GetAIAvatarVideos(w http.ResponseWriter, r *http.Request)
 	// Health check endpoint
-	// (GET /health)
+	// (GET /api/health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
 	// Get user's hooks
-	// (GET /hooks)
+	// (GET /api/hooks)
 	GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams)
 	// Generate hooks for TikTok slideshow
-	// (POST /hooks/generate)
+	// (POST /api/hooks/generate)
 	GenerateHooks(w http.ResponseWriter, r *http.Request)
 	// Delete a hook
-	// (DELETE /hooks/{hookId})
+	// (DELETE /api/hooks/{hookId})
 	DeleteHook(w http.ResponseWriter, r *http.Request, hookId openapi_types.UUID)
 	// Create Stripe checkout session
-	// (POST /subscription/create-checkout-session)
+	// (POST /api/subscription/create-checkout-session)
 	CreateCheckoutSession(w http.ResponseWriter, r *http.Request)
 	// Create customer portal session
-	// (POST /subscription/customer-portal)
+	// (POST /api/subscription/customer-portal)
 	CreateCustomerPortalSession(w http.ResponseWriter, r *http.Request)
 	// Get current user account
-	// (GET /user)
+	// (GET /api/user)
 	GetUserAccount(w http.ResponseWriter, r *http.Request)
 	// Get user-generated videos
-	// (GET /user-generated-videos)
+	// (GET /api/user-generated-videos)
 	GetUserGeneratedVideos(w http.ResponseWriter, r *http.Request)
 	// Generate a video with text overlay
-	// (POST /user-generated-videos)
+	// (POST /api/user-generated-videos)
 	CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Request)
 }
 
@@ -631,16 +631,16 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	m.HandleFunc("GET "+options.BaseURL+"/ai-avatar/videos", wrapper.GetAIAvatarVideos)
-	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
-	m.HandleFunc("GET "+options.BaseURL+"/hooks", wrapper.GetHooks)
-	m.HandleFunc("POST "+options.BaseURL+"/hooks/generate", wrapper.GenerateHooks)
-	m.HandleFunc("DELETE "+options.BaseURL+"/hooks/{hookId}", wrapper.DeleteHook)
-	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
-	m.HandleFunc("POST "+options.BaseURL+"/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
-	m.HandleFunc("GET "+options.BaseURL+"/user", wrapper.GetUserAccount)
-	m.HandleFunc("GET "+options.BaseURL+"/user-generated-videos", wrapper.GetUserGeneratedVideos)
-	m.HandleFunc("POST "+options.BaseURL+"/user-generated-videos", wrapper.CreateUserGeneratedVideo)
+	m.HandleFunc("GET "+options.BaseURL+"/api/ai-avatar/videos", wrapper.GetAIAvatarVideos)
+	m.HandleFunc("GET "+options.BaseURL+"/api/health", wrapper.GetHealth)
+	m.HandleFunc("GET "+options.BaseURL+"/api/hooks", wrapper.GetHooks)
+	m.HandleFunc("POST "+options.BaseURL+"/api/hooks/generate", wrapper.GenerateHooks)
+	m.HandleFunc("DELETE "+options.BaseURL+"/api/hooks/{hookId}", wrapper.DeleteHook)
+	m.HandleFunc("POST "+options.BaseURL+"/api/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
+	m.HandleFunc("POST "+options.BaseURL+"/api/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
+	m.HandleFunc("GET "+options.BaseURL+"/api/user", wrapper.GetUserAccount)
+	m.HandleFunc("GET "+options.BaseURL+"/api/user-generated-videos", wrapper.GetUserGeneratedVideos)
+	m.HandleFunc("POST "+options.BaseURL+"/api/user-generated-videos", wrapper.CreateUserGeneratedVideo)
 
 	return m
 }

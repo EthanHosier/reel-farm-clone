@@ -16,7 +16,7 @@ export class HealthService {
     public static getHealth(): CancelablePromise<HealthResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/health',
+            url: '/api/health',
             errors: {
                 500: `Internal server error`,
             },
