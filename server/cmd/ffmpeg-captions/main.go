@@ -79,7 +79,7 @@ func main() {
 	defer os.Remove(tempTextFile) // Clean up the temp file
 
 	// Use textfile parameter instead of inline text
-	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=TikTokDisplay-Medium.ttf:fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=5:bordercolor=black", tempTextFile)
+	videoFilter := fmt.Sprintf("drawtext=textfile=%s:fontfile=TikTokDisplay-Medium.ttf:fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:borderw=5:bordercolor=black:text_align=center", tempTextFile)
 
 	cmd := exec.Command("ffmpeg",
 		"-i", firstVideo,
