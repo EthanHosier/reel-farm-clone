@@ -16,7 +16,7 @@ export class AiAvatarService {
     public static getAiAvatarVideos(): CancelablePromise<AIAvatarVideosResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/ai-avatar/videos',
+            url: '/ai-avatar/videos',
             errors: {
                 401: `Unauthorized - invalid or missing token`,
                 500: `Internal server error`,

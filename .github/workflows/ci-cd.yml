@@ -123,14 +123,14 @@ jobs:
       - name: Health check
         run: |
           ALB_DNS="${{ steps.get-alb-dns.outputs.alb-dns }}"
-          echo "Performing health check on: http://$ALB_DNS/api/health"
+          echo "Performing health check on: http://$ALB_DNS/health"
 
           # Wait for ALB to be ready
           sleep 30
 
           # Perform health check with retries
           for i in {1..10}; do
-            if curl -f http://$ALB_DNS/api/health; then
+            if curl -f http://$ALB_DNS/health; then
               echo "✅ Health check passed!"
               exit 0
             else

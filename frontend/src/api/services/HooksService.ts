@@ -21,7 +21,7 @@ export class HooksService {
     ): CancelablePromise<GenerateHooksResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/hooks/generate',
+            url: '/hooks/generate',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -45,7 +45,7 @@ export class HooksService {
     ): CancelablePromise<GetHooksResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/hooks',
+            url: '/hooks',
             query: {
                 'limit': limit,
                 'offset': offset,
@@ -70,7 +70,7 @@ export class HooksService {
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/hooks/{hookId}',
+            url: '/hooks/{hookId}',
             path: {
                 'hookId': hookId,
             },

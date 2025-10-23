@@ -105,8 +105,8 @@ func main() {
 	// Create main router
 	mux := http.NewServeMux()
 
-	// Add API routes (with auth middleware and logging)
-	mux.Handle("/", middleware.Logging(middleware.CORSMiddleware()(apiHandler)))
+	// Add API routes (with path stripping, auth middleware and logging)
+	mux.Handle("/", middleware.PathStrip("/api")(middleware.Logging(middleware.CORSMiddleware()(apiHandler))))
 
 	// Add webhook routes (no auth middleware, but with CORS and logging)
 	mux.Handle("/webhooks/stripe", middleware.Logging(middleware.CORSMiddleware()(webhookHandler)))

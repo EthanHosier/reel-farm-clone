@@ -22,7 +22,7 @@ export class SubscriptionsService {
     ): CancelablePromise<CheckoutSessionResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/subscription/create-checkout-session',
+            url: '/subscription/create-checkout-session',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -44,7 +44,7 @@ export class SubscriptionsService {
     ): CancelablePromise<CustomerPortalResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/subscription/customer-portal',
+            url: '/subscription/customer-portal',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

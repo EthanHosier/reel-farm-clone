@@ -7,7 +7,9 @@ import { UserGeneratedVideosService } from "@/api/services/UserGeneratedVideosSe
 import { UsersService } from "@/api/services/UsersService";
 
 // Get API URL from environment variable
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = `${
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+}/api`;
 
 console.log("API URL:", API_URL);
 

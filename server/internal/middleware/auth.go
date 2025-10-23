@@ -16,7 +16,7 @@ func AuthMiddleware(noAuth bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip auth for health endpoint
-			if r.URL.Path == "/api/health" {
+			if r.URL.Path == "/health" {
 				next.ServeHTTP(w, r)
 				return
 			}
