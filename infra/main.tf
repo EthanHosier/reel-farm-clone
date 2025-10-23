@@ -261,6 +261,10 @@ resource "aws_ecs_task_definition" "main" {
         {
           name  = "STRIPE_WEBHOOK_SECRET"
           value = var.stripe_webhook_secret
+        },
+        {
+          name = "OPENAI_API_KEY"
+          value = var.openai_api_key
         }
       ])
 
