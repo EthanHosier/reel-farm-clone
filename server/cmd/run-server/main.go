@@ -65,7 +65,14 @@ func main() {
 
 	// Create AI avatar service
 	aiAvatarRepo := repository.NewAIAvatarRepository(pool)
-	aiAvatarService := service.NewAIAvatarService(aiAvatarRepo)
+	bucketName := os.Getenv("S3_BUCKET_NAME")
+	if bucketName == "" {
+		log.Fatal("S3_BUCKET_NAME environment variable is not set")
+	}
+	aiAvatarService, err := service.NewAIAvatarService(aiAvatarRepo, bucketName)
+	if err != nil {
+		log.Fatal("Failed to create AI avatar service:", err)
+	}
 
 	apiServer := handler.NewAPIServer(userService, subscriptionService, hookService, aiAvatarService)
 

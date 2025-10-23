@@ -19,22 +19,20 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for UserGeneratedVideoStatus.
+const (
+	Completed  UserGeneratedVideoStatus = "completed"
+	Failed     UserGeneratedVideoStatus = "failed"
+	Processing UserGeneratedVideoStatus = "processing"
+)
+
 // AIAvatarVideo defines model for AIAvatarVideo.
 type AIAvatarVideo struct {
-	// Id Unique identifier for the video
+	// Id Unique identifier for the hook
 	Id openapi_types.UUID `json:"id"`
 
-	// ThumbnailUrl CloudFront URL for thumbnail
-	ThumbnailUrl string `json:"thumbnail_url"`
-
-	// Title Video title
-	Title string `json:"title"`
-
-	// UpdatedAt When the video was last updated
-	UpdatedAt time.Time `json:"updated_at"`
-
-	// VideoUrl CloudFront URL for video download
-	VideoUrl string `json:"video_url"`
+	// Text The hook text content
+	Text *string `json:"text,omitempty"`
 }
 
 // AIAvatarVideosResponse defines model for AIAvatarVideosResponse.
@@ -65,6 +63,15 @@ type CreateCheckoutSessionRequest struct {
 type CreateCustomerPortalRequest struct {
 	// ReturnUrl URL to redirect to after managing subscription
 	ReturnUrl string `json:"return_url"`
+}
+
+// CreateUserGeneratedVideoRequest defines model for CreateUserGeneratedVideoRequest.
+type CreateUserGeneratedVideoRequest struct {
+	// AiAvatarVideoId ID of the AI avatar video to use as base
+	AiAvatarVideoId openapi_types.UUID `json:"ai_avatar_video_id"`
+
+	// OverlayText Text to overlay on the video
+	OverlayText string `json:"overlay_text"`
 }
 
 // CustomerPortalResponse defines model for CustomerPortalResponse.
@@ -105,8 +112,20 @@ type GetHooksResponse struct {
 	// Hooks Array of user's hooks
 	Hooks []Hook `json:"hooks"`
 
+	// ThumbnailUrl CloudFront URL for thumbnail
+	ThumbnailUrl *string `json:"thumbnail_url,omitempty"`
+
+	// Title Video title
+	Title *string `json:"title,omitempty"`
+
 	// TotalCount Total number of hooks for the user
 	TotalCount int `json:"total_count"`
+
+	// UpdatedAt When the video was last updated
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// VideoUrl CloudFront URL for video download
+	VideoUrl *string `json:"video_url,omitempty"`
 }
 
 // HealthResponse defines model for HealthResponse.
@@ -152,6 +171,41 @@ type UserAccount struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// UserGeneratedVideo defines model for UserGeneratedVideo.
+type UserGeneratedVideo struct {
+	// AiAvatarVideoId ID of the original AI avatar video
+	AiAvatarVideoId openapi_types.UUID `json:"ai_avatar_video_id"`
+
+	// CreatedAt When the video was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Id Unique identifier for the user-generated video
+	Id openapi_types.UUID `json:"id"`
+
+	// OverlayText Text that was overlaid on the video
+	OverlayText string `json:"overlay_text"`
+
+	// Status Current processing status
+	Status UserGeneratedVideoStatus `json:"status"`
+
+	// ThumbnailUrl CloudFront URL for the video thumbnail
+	ThumbnailUrl string `json:"thumbnail_url"`
+
+	// UserId ID of the user who generated the video
+	UserId openapi_types.UUID `json:"user_id"`
+
+	// VideoUrl CloudFront URL for the generated video
+	VideoUrl string `json:"video_url"`
+}
+
+// UserGeneratedVideoStatus Current processing status
+type UserGeneratedVideoStatus string
+
+// UserGeneratedVideoResponse defines model for UserGeneratedVideoResponse.
+type UserGeneratedVideoResponse struct {
+	Video UserGeneratedVideo `json:"video"`
+}
+
 // GetHooksParams defines parameters for GetHooks.
 type GetHooksParams struct {
 	// Limit Number of hooks to return
@@ -169,6 +223,9 @@ type CreateCheckoutSessionJSONRequestBody = CreateCheckoutSessionRequest
 
 // CreateCustomerPortalSessionJSONRequestBody defines body for CreateCustomerPortalSession for application/json ContentType.
 type CreateCustomerPortalSessionJSONRequestBody = CreateCustomerPortalRequest
+
+// CreateUserGeneratedVideoJSONRequestBody defines body for CreateUserGeneratedVideo for application/json ContentType.
+type CreateUserGeneratedVideoJSONRequestBody = CreateUserGeneratedVideoRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -196,6 +253,9 @@ type ServerInterface interface {
 	// Get current user account
 	// (GET /user)
 	GetUserAccount(w http.ResponseWriter, r *http.Request)
+	// Generate a video with text overlay
+	// (POST /user-generated-videos)
+	CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -393,6 +453,26 @@ func (siw *ServerInterfaceWrapper) GetUserAccount(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// CreateUserGeneratedVideo operation middleware
+func (siw *ServerInterfaceWrapper) CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUserGeneratedVideo(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -521,6 +601,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/customer-portal", wrapper.CreateCustomerPortalSession)
 	m.HandleFunc("GET "+options.BaseURL+"/user", wrapper.GetUserAccount)
+	m.HandleFunc("POST "+options.BaseURL+"/user-generated-videos", wrapper.CreateUserGeneratedVideo)
 
 	return m
 }

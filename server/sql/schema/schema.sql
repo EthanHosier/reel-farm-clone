@@ -351,43 +351,20 @@ COMMENT ON COLUMN public.user_accounts.credits IS 'Number of credits available t
 
 
 --
--- Name: credit_txns credit_txns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: user_generated_videos; Type: TABLE; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.credit_txns
-    ADD CONSTRAINT credit_txns_pkey PRIMARY KEY (id);
-
-
---
--- Name: credit_txns credit_txns_request_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.credit_txns
-    ADD CONSTRAINT credit_txns_request_id_key UNIQUE (request_id);
-
-
---
--- Name: hooks hooks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.hooks
-    ADD CONSTRAINT hooks_pkey PRIMARY KEY (id);
-
-
---
--- Name: videos; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.videos (
+CREATE TABLE public.user_generated_videos (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    title text NOT NULL,
-    description text,
-    filename text NOT NULL,
-    thumbnail_filename text NOT NULL,
-    duration integer,
-    file_size bigint,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    user_id uuid NOT NULL,
+    ai_avatar_video_id uuid NOT NULL,
+    overlay_text text NOT NULL,
+    generated_video_filename character varying(255) NOT NULL,
+    thumbnail_filename character varying(255) NOT NULL,
+    status character varying(20) DEFAULT 'processing'::character varying,
+    error_message text,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
 );
 
 
@@ -432,49 +409,14 @@ ALTER TABLE ONLY public.user_accounts
 
 
 --
--- Name: idx_credit_txns_created_at; Type: INDEX; Schema: public; Owner: -
+-- Name: user_generated_videos user_generated_videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_credit_txns_created_at ON public.credit_txns USING btree (created_at);
-
-
---
--- Name: idx_credit_txns_status; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_credit_txns_status ON public.credit_txns USING btree (status);
+ALTER TABLE ONLY public.user_generated_videos
+    ADD CONSTRAINT user_generated_videos_pkey PRIMARY KEY (id);
 
 
 --
--- Name: idx_credit_txns_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_credit_txns_user_id ON public.credit_txns USING btree (user_id);
-
-
---
--- Name: idx_hooks_created_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_hooks_created_at ON public.hooks USING btree (created_at);
-
-
---
--- Name: idx_hooks_generation_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_hooks_generation_id ON public.hooks USING btree (generation_id);
-
-
---
--- Name: idx_hooks_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_hooks_user_id ON public.hooks USING btree (user_id);
-
-
---
--- Name: videos videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 -- Name: ai_avatar_videos videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -539,6 +481,34 @@ CREATE INDEX idx_hooks_user_id ON public.hooks USING btree (user_id);
 
 
 --
+-- Name: idx_user_generated_videos_ai_avatar_video_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_generated_videos_ai_avatar_video_id ON public.user_generated_videos USING btree (ai_avatar_video_id);
+
+
+--
+-- Name: idx_user_generated_videos_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_generated_videos_created_at ON public.user_generated_videos USING btree (created_at);
+
+
+--
+-- Name: idx_user_generated_videos_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_generated_videos_status ON public.user_generated_videos USING btree (status);
+
+
+--
+-- Name: idx_user_generated_videos_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_user_generated_videos_user_id ON public.user_generated_videos USING btree (user_id);
+
+
+--
 -- Name: ai_avatar_videos set_updated_at_ai_avatar_videos; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -553,26 +523,10 @@ CREATE TRIGGER set_updated_at_user_accounts BEFORE UPDATE ON public.user_account
 
 
 --
--- Name: credit_txns credit_txns_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: user_generated_videos set_updated_at_user_generated_videos; Type: TRIGGER; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.credit_txns
-    ADD CONSTRAINT credit_txns_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE CASCADE;
-
-
---
--- Name: hooks hooks_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.hooks
-    ADD CONSTRAINT hooks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id) ON DELETE CASCADE;
-
-
---
--- Name: videos set_updated_at_videos; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER set_updated_at_videos BEFORE UPDATE ON public.videos FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
+CREATE TRIGGER set_updated_at_user_generated_videos BEFORE UPDATE ON public.user_generated_videos FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
 
 
 --
@@ -597,6 +551,22 @@ ALTER TABLE ONLY public.hooks
 
 ALTER TABLE ONLY public.user_accounts
     ADD CONSTRAINT user_accounts_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_generated_videos user_generated_videos_ai_avatar_video_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_generated_videos
+    ADD CONSTRAINT user_generated_videos_ai_avatar_video_id_fkey FOREIGN KEY (ai_avatar_video_id) REFERENCES public.ai_avatar_videos(id);
+
+
+--
+-- Name: user_generated_videos user_generated_videos_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_generated_videos
+    ADD CONSTRAINT user_generated_videos_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id);
 
 
 --

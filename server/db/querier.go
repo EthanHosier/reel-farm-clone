@@ -17,25 +17,30 @@ type Querier interface {
 	CaptureCredits(ctx context.Context, id uuid.UUID) error
 	CreateHook(ctx context.Context, arg *CreateHookParams) (*Hook, error)
 	CreateHooksBatch(ctx context.Context, arg *CreateHooksBatchParams) ([]*Hook, error)
+	CreateUserGeneratedVideo(ctx context.Context, arg *CreateUserGeneratedVideoParams) (*UserGeneratedVideo, error)
+	CreateVideo(ctx context.Context, arg *CreateVideoParams) (*AiAvatarVideo, error)
 	DeleteHook(ctx context.Context, arg *DeleteHookParams) error
+	DeleteVideo(ctx context.Context, id uuid.UUID) error
+	GetAllVideos(ctx context.Context) ([]*AiAvatarVideo, error)
 	GetHookByID(ctx context.Context, id uuid.UUID) (*Hook, error)
 	GetHooksByGeneration(ctx context.Context, generationID pgtype.UUID) ([]*Hook, error)
 	GetHooksByUser(ctx context.Context, arg *GetHooksByUserParams) ([]*Hook, error)
 	GetStaleReservedTxns(ctx context.Context) ([]*GetStaleReservedTxnsRow, error)
 	GetTxnByRequestID(ctx context.Context, requestID string) (*CreditTxn, error)
 	GetTxnStatus(ctx context.Context, id uuid.UUID) (string, error)
+	GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccount, error)
+	GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error)
+	GetUserGeneratedVideoByID(ctx context.Context, id uuid.UUID) (*UserGeneratedVideo, error)
+	GetUserGeneratedVideosByUserID(ctx context.Context, userID pgtype.UUID) ([]*UserGeneratedVideo, error)
 	GetUserHookCount(ctx context.Context, userID pgtype.UUID) (int64, error)
+	GetVideoByID(ctx context.Context, id uuid.UUID) (*AiAvatarVideo, error)
 	MarkTxnRefunded(ctx context.Context, id uuid.UUID) error
 	RefundCredits(ctx context.Context, arg *RefundCreditsParams) error
 	RemoveCreditsFromUser(ctx context.Context, arg *RemoveCreditsFromUserParams) error
 	ReserveCredits(ctx context.Context, arg *ReserveCreditsParams) (*ReserveCreditsRow, error)
-	CreateVideo(ctx context.Context, arg *CreateVideoParams) (*AiAvatarVideo, error)
-	DeleteVideo(ctx context.Context, id uuid.UUID) error
-	GetAllVideos(ctx context.Context) ([]*AiAvatarVideo, error)
-	GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccount, error)
-	GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error)
-	GetVideoByID(ctx context.Context, id uuid.UUID) (*AiAvatarVideo, error)
 	UpdateUserBillingCustomerID(ctx context.Context, arg *UpdateUserBillingCustomerIDParams) error
+	UpdateUserGeneratedVideoFilenames(ctx context.Context, arg *UpdateUserGeneratedVideoFilenamesParams) (*UserGeneratedVideo, error)
+	UpdateUserGeneratedVideoStatus(ctx context.Context, arg *UpdateUserGeneratedVideoStatusParams) (*UserGeneratedVideo, error)
 	UpdateUserPlan(ctx context.Context, arg *UpdateUserPlanParams) error
 	UpdateVideo(ctx context.Context, arg *UpdateVideoParams) (*AiAvatarVideo, error)
 }

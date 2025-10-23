@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethanhosier/reel-farm/db"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -57,4 +58,31 @@ func (r *AIAvatarRepository) VideoExists(ctx context.Context, id uuid.UUID) (boo
 		return false, err
 	}
 	return true, nil
+}
+
+// User Generated Videos methods
+
+// CreateUserGeneratedVideo creates a new user-generated video record
+func (r *AIAvatarRepository) CreateUserGeneratedVideo(ctx context.Context, params *db.CreateUserGeneratedVideoParams) (*db.UserGeneratedVideo, error) {
+	return r.queries.CreateUserGeneratedVideo(ctx, params)
+}
+
+// GetUserGeneratedVideoByID retrieves a specific user-generated video by ID
+func (r *AIAvatarRepository) GetUserGeneratedVideoByID(ctx context.Context, id uuid.UUID) (*db.UserGeneratedVideo, error) {
+	return r.queries.GetUserGeneratedVideoByID(ctx, id)
+}
+
+// GetUserGeneratedVideosByUserID retrieves all user-generated videos for a specific user
+func (r *AIAvatarRepository) GetUserGeneratedVideosByUserID(ctx context.Context, userID uuid.UUID) ([]*db.UserGeneratedVideo, error) {
+	return r.queries.GetUserGeneratedVideosByUserID(ctx, pgtype.UUID{Bytes: userID, Valid: true})
+}
+
+// UpdateUserGeneratedVideoStatus updates the status of a user-generated video
+func (r *AIAvatarRepository) UpdateUserGeneratedVideoStatus(ctx context.Context, params *db.UpdateUserGeneratedVideoStatusParams) (*db.UserGeneratedVideo, error) {
+	return r.queries.UpdateUserGeneratedVideoStatus(ctx, params)
+}
+
+// UpdateUserGeneratedVideoFilenames updates the filenames of a user-generated video
+func (r *AIAvatarRepository) UpdateUserGeneratedVideoFilenames(ctx context.Context, params *db.UpdateUserGeneratedVideoFilenamesParams) (*db.UserGeneratedVideo, error) {
+	return r.queries.UpdateUserGeneratedVideoFilenames(ctx, params)
 }

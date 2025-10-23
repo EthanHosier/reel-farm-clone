@@ -316,6 +316,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /user-generated-videos:
+    post:
+      summary: Generate a video with text overlay
+      description: Creates a new user-generated video by adding text overlay to an existing AI avatar video
+      operationId: createUserGeneratedVideo
+      tags:
+        - User Generated Videos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserGeneratedVideoRequest"
+      responses:
+        "201":
+          description: Video generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGeneratedVideoResponse"
+        "400":
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: AI avatar video not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -509,7 +556,17 @@ components:
       required:
         - id
         - text
-        
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the hook
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        text:
+          type: string
+          description: The hook text content
+          example: "5 things I wish I knew before killing my plants"
+
     AIAvatarVideo:
       type: object
       required:
@@ -545,8 +602,6 @@ components:
           minimum: 0
           description: Total number of hooks for the user
           example: 25
-          description: Unique identifier for the video
-          example: "f310a473-df50-1bc0-60af-726147adcd4d"
         title:
           type: string
           description: Video title
@@ -576,6 +631,81 @@ components:
             $ref: "#/components/schemas/AIAvatarVideo"
           description: List of AI avatar videos
 
+    CreateUserGeneratedVideoRequest:
+      type: object
+      required:
+        - ai_avatar_video_id
+        - overlay_text
+      properties:
+        ai_avatar_video_id:
+          type: string
+          format: uuid
+          description: ID of the AI avatar video to use as base
+          example: "f310a473-df50-1bc0-60af-726147adcd4d"
+        overlay_text:
+          type: string
+          description: Text to overlay on the video
+          example: "Check out this amazing content!"
+          maxLength: 500
+
+    UserGeneratedVideo:
+      type: object
+      required:
+        - id
+        - user_id
+        - ai_avatar_video_id
+        - overlay_text
+        - video_url
+        - thumbnail_url
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user-generated video
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        user_id:
+          type: string
+          format: uuid
+          description: ID of the user who generated the video
+          example: "12345678-1234-1234-1234-123456789012"
+        ai_avatar_video_id:
+          type: string
+          format: uuid
+          description: ID of the original AI avatar video
+          example: "f310a473-df50-1bc0-60af-726147adcd4d"
+        overlay_text:
+          type: string
+          description: Text that was overlaid on the video
+          example: "Check out this amazing content!"
+        video_url:
+          type: string
+          description: CloudFront URL for the generated video
+          example: "https://d1234567890.cloudfront.net/user-generated-videos/a1b2c3d4-e5f6-7890-abcd-ef1234567890.mp4"
+        thumbnail_url:
+          type: string
+          description: CloudFront URL for the video thumbnail
+          example: "https://d1234567890.cloudfront.net/user-generated-videos/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg"
+        status:
+          type: string
+          enum: [processing, completed, failed]
+          description: Current processing status
+          example: "completed"
+        created_at:
+          type: string
+          format: date-time
+          description: When the video was created
+          example: "2025-01-20T12:00:00Z"
+
+    UserGeneratedVideoResponse:
+      type: object
+      required:
+        - video
+      properties:
+        video:
+          $ref: "#/components/schemas/UserGeneratedVideo"
+
 tags:
   - name: Health
     description: Health check endpoints
@@ -587,3 +717,5 @@ tags:
     description: Subscription and billing management
   - name: AI Avatar
     description: AI avatar video management
+  - name: User Generated Videos
+    description: User-generated video creation and management

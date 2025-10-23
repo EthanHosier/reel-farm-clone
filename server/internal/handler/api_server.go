@@ -555,3 +555,118 @@ func (s *APIServer) DeleteHook(w http.ResponseWriter, r *http.Request, hookId op
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+// CreateUserGeneratedVideo handles POST /user-generated-videos
+func (s *APIServer) CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract user ID from context
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
+	// Parse request body
+	var req api.CreateUserGeneratedVideoRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "Invalid request body",
+		})
+		return
+	}
+
+	// Parse AI avatar video ID
+	aiAvatarVideoID := uuid.UUID(req.AiAvatarVideoId)
+
+	// Get the AI avatar video to get its URL
+	aiAvatarVideo, err := s.aiAvatarService.GetVideoByID(r.Context(), aiAvatarVideoID)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "video_not_found",
+			Message: "AI avatar video not found",
+		})
+		return
+	}
+
+	// Generate CloudFront URL for the video
+	videoPath := fmt.Sprintf("ai-avatar/videos/%s", aiAvatarVideo.Filename)
+	videoURL, err := s.generateCloudFrontURL(videoPath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to generate video URL",
+		})
+		return
+	}
+
+	// Process video with text overlay
+	userGeneratedVideo, err := s.aiAvatarService.ProcessVideoWithTextOverlay(r.Context(), userID, aiAvatarVideoID, videoURL, req.OverlayText)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "processing_error",
+			Message: "Failed to process video with text overlay" + err.Error(),
+		})
+		return
+	}
+
+	// Generate CloudFront URLs for the generated video
+	generatedVideoPath := fmt.Sprintf("user-generated-videos/videos/%s", userGeneratedVideo.GeneratedVideoFilename)
+	generatedThumbnailPath := fmt.Sprintf("user-generated-videos/thumbnails/%s", userGeneratedVideo.ThumbnailFilename)
+
+	generatedVideoURL, err := s.generateCloudFrontURL(generatedVideoPath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to generate video URL",
+		})
+		return
+	}
+
+	generatedThumbnailURL, err := s.generateCloudFrontURL(generatedThumbnailPath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to generate thumbnail URL",
+		})
+		return
+	}
+
+	// Create response
+	response := api.UserGeneratedVideoResponse{
+		Video: api.UserGeneratedVideo{
+			Id:              openapi_types.UUID(userGeneratedVideo.ID),
+			UserId:          openapi_types.UUID(userGeneratedVideo.UserID.Bytes),
+			AiAvatarVideoId: openapi_types.UUID(userGeneratedVideo.AiAvatarVideoID.Bytes),
+			OverlayText:     userGeneratedVideo.OverlayText,
+			VideoUrl:        generatedVideoURL,
+			ThumbnailUrl:    generatedThumbnailURL,
+			Status:          api.UserGeneratedVideoStatus(*userGeneratedVideo.Status),
+			CreatedAt:       userGeneratedVideo.CreatedAt,
+		},
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}

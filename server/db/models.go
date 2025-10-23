@@ -79,3 +79,16 @@ type UserAccount struct {
 	// Number of credits available to the user (must be >= 0, default 100)
 	Credits int32 `json:"credits"`
 }
+
+type UserGeneratedVideo struct {
+	ID                     uuid.UUID   `json:"id"`
+	UserID                 pgtype.UUID `json:"user_id"`
+	AiAvatarVideoID        pgtype.UUID `json:"ai_avatar_video_id"`
+	OverlayText            string      `json:"overlay_text"`
+	GeneratedVideoFilename string      `json:"generated_video_filename"`
+	ThumbnailFilename      string      `json:"thumbnail_filename"`
+	Status                 *string     `json:"status"`
+	ErrorMessage           *string     `json:"error_message"`
+	CreatedAt              time.Time   `json:"created_at"`
+	UpdatedAt              time.Time   `json:"updated_at"`
+}
