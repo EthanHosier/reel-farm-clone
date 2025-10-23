@@ -10,8 +10,9 @@ import {
 import { useHealth } from "./queries/useHealth";
 import { useUser } from "./queries/useUser";
 import { HooksManager } from "./components/HooksManager";
+import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
 import { api } from "@/lib/api";
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function Dashboard() {
   const { user, session, signOut } = useAuth();
@@ -25,10 +26,25 @@ export default function Dashboard() {
     isLoading: userLoading,
     error: userError,
   } = useUser();
+  const {
+    data: aiAvatarVideos,
+    isLoading: videosLoading,
+    error: videosError,
+  } = useAIAvatarVideos();
 
   // Subscription state
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
   const [isCreatingPortal, setIsCreatingPortal] = useState(false);
+
+  // Video preview state
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+  // Set default selected video when videos load
+  React.useEffect(() => {
+    if (aiAvatarVideos && aiAvatarVideos.videos.length > 0 && !selectedVideo) {
+      setSelectedVideo(aiAvatarVideos.videos[0].video_url);
+    }
+  }, [aiAvatarVideos, selectedVideo]);
 
   const handleSignOut = async () => {
     try {
@@ -244,6 +260,71 @@ export default function Dashboard() {
 
           {/* Hooks Management */}
           <HooksManager />
+          {/* AI Avatar Videos Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Avatar Videos</CardTitle>
+              <CardDescription>
+                Click on a thumbnail to watch the video
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {videosLoading && (
+                <p className="text-blue-600">Loading AI avatar videos...</p>
+              )}
+              {videosError && (
+                <p className="text-red-600">Error: {videosError.message}</p>
+              )}
+              {aiAvatarVideos && (
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+                  {aiAvatarVideos.videos.map((video) => (
+                    <div
+                      key={video.id}
+                      className="bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => setSelectedVideo(video.video_url)}
+                    >
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={video.thumbnail_url}
+                          alt={video.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {aiAvatarVideos && aiAvatarVideos.videos.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No AI avatar videos available yet.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Video Preview Section */}
+          {selectedVideo && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Video Preview</CardTitle>
+                <CardDescription>
+                  Click on any thumbnail above to preview the video
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-[9/16] bg-black rounded-lg overflow-hidden max-w-sm mx-auto">
+                  <video
+                    src={selectedVideo}
+                    controls
+                    className="w-full h-full"
+                    autoPlay
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

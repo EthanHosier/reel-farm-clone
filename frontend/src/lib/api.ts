@@ -1,5 +1,6 @@
 import { HooksService } from "@/api";
 import { OpenAPI } from "@/api/core/OpenAPI";
+import { AiAvatarService } from "@/api/services/AiAvatarService";
 import { HealthService } from "@/api/services/HealthService";
 import { SubscriptionsService } from "@/api/services/SubscriptionsService";
 import { UsersService } from "@/api/services/UsersService";
@@ -30,10 +31,13 @@ export const api = {
   users: UsersService,
   subscriptions: SubscriptionsService,
   hooks: HooksService,
+  aiAvatar: AiAvatarService,
 };
 
 // Re-export types for convenience
 export type {
+  AIAvatarVideosResponse,
+  AIAvatarVideo,
   HealthResponse,
   UserAccount,
   CreateCheckoutSessionRequest,

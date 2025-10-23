@@ -7,6 +7,8 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { AIAvatarVideo } from './models/AIAvatarVideo';
+export type { AIAvatarVideosResponse } from './models/AIAvatarVideosResponse';
 export type { CheckoutSessionResponse } from './models/CheckoutSessionResponse';
 export type { CreateCheckoutSessionRequest } from './models/CreateCheckoutSessionRequest';
 export type { CreateCustomerPortalRequest } from './models/CreateCustomerPortalRequest';
@@ -19,6 +21,7 @@ export type { HealthResponse } from './models/HealthResponse';
 export type { Hook } from './models/Hook';
 export type { UserAccount } from './models/UserAccount';
 
+export { AiAvatarService } from './services/AiAvatarService';
 export { HealthService } from './services/HealthService';
 export { HooksService } from './services/HooksService';
 export { SubscriptionsService } from './services/SubscriptionsService';
