@@ -119,3 +119,9 @@ variable "openai_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "cloudfront_domain" {
+  description = "CloudFront domain"
+  type        = string
+  default     = ""
+}

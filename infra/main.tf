@@ -265,6 +265,10 @@ resource "aws_ecs_task_definition" "main" {
         {
           name = "OPENAI_API_KEY"
           value = var.openai_api_key
+        },
+        {
+          name = "CLOUDFRONT_DOMAIN",
+          value = var.cloudfront_domain
         }
       ])
 
