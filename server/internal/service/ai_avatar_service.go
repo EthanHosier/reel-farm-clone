@@ -13,6 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/cloudfront/sign"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/ethanhosier/reel-farm/db"
@@ -22,11 +23,13 @@ import (
 )
 
 type AIAvatarService struct {
-	repo       *repository.AIAvatarRepository
-	s3Client   *s3.Client
-	uploader   *manager.Uploader
-	bucketName string
-	tempDir    string
+	repo             *repository.AIAvatarRepository
+	s3Client         *s3.Client
+	uploader         *manager.Uploader
+	bucketName       string
+	tempDir          string
+	cloudfrontDomain string
+	cloudfrontSigner *sign.URLSigner
 }
 
 func NewAIAvatarService(repo *repository.AIAvatarRepository, bucketName string) (*AIAvatarService, error) {
@@ -46,12 +49,32 @@ func NewAIAvatarService(repo *repository.AIAvatarRepository, bucketName string) 
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
+	// Get CloudFront configuration from environment
+	cloudfrontDomain := os.Getenv("CLOUDFRONT_DOMAIN")
+	cloudfrontKeyPairID := os.Getenv("CLOUDFRONT_KEY_PAIR_ID")
+	cloudfrontPrivateKey := os.Getenv("CLOUDFRONT_PRIVATE_KEY")
+
+	if cloudfrontDomain == "" || cloudfrontKeyPairID == "" || cloudfrontPrivateKey == "" {
+		return nil, fmt.Errorf("CloudFront configuration missing: CLOUDFRONT_DOMAIN, CLOUDFRONT_KEY_PAIR_ID, and CLOUDFRONT_PRIVATE_KEY are required")
+	}
+
+	// Parse the private key
+	privKey, err := sign.LoadPEMPrivKey(strings.NewReader(cloudfrontPrivateKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse CloudFront private key: %w", err)
+	}
+
+	// Create CloudFront signer
+	cloudfrontSigner := sign.NewURLSigner(cloudfrontKeyPairID, privKey)
+
 	return &AIAvatarService{
-		repo:       repo,
-		s3Client:   s3Client,
-		uploader:   uploader,
-		bucketName: bucketName,
-		tempDir:    tempDir,
+		repo:             repo,
+		s3Client:         s3Client,
+		uploader:         uploader,
+		bucketName:       bucketName,
+		tempDir:          tempDir,
+		cloudfrontDomain: cloudfrontDomain,
+		cloudfrontSigner: cloudfrontSigner,
 	}, nil
 }
 
@@ -281,4 +304,19 @@ func (s *AIAvatarService) wrapTextToLines(text string, maxCharsPerLine int) []st
 	}
 
 	return lines
+}
+
+// GenerateSignedURL creates a signed CloudFront URL for user-generated videos
+func (s *AIAvatarService) GenerateSignedURL(path string, expiresIn time.Duration) (string, error) {
+	// Create the base CloudFront URL
+	baseURL := fmt.Sprintf("https://%s/%s", s.cloudfrontDomain, path)
+
+	// Sign the URL with expiration time
+	expiresAt := time.Now().Add(expiresIn)
+	signedURL, err := s.cloudfrontSigner.Sign(baseURL, expiresAt)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign CloudFront URL: %w", err)
+	}
+
+	return signedURL, nil
 }

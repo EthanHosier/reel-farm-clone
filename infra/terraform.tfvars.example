@@ -22,6 +22,19 @@ desired_count  = 1
 # Database Configuration
 database_url = "postgresql://postgres:password@db.project.supabase.co:5432/postgres"
 
+# JWT Configuration
+jwt_secret = "your-jwt-secret-here"
+
+# Stripe Configuration
+stripe_secret_key = "sk_test_..."
+stripe_webhook_secret = "whsec_..."
+
+# OpenAI Configuration
+openai_api_key = "sk-proj-..."
+
+# CloudFront Configuration
+cloudfront_domain = "d1234567890.cloudfront.net"
+
 # SSL Configuration (optional)
 # domain_name = "api.yourdomain.com"
 # certificate_arn = "arn:aws:acm:us-west-2:123456789012:certificate/12345678-1234-1234-1234-123456789012"

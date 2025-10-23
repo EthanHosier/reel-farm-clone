@@ -10,6 +10,7 @@ For the github actions, the health check is checking the alb url, not the cloudf
 Am I using the transactions correctly for the use repo sqlc?
 Add idempotency and race condition protection for spending credits
 Use signed urls for the ai avatar thumbnails and vids?
+Refac the ai-generate video service to move the signing of urls into the service layer and the db types shouldnt leak into the handler?
 
 ## Stripe
 

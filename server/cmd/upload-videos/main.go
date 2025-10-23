@@ -128,10 +128,15 @@ func NewVideoUploader(bucketName string) (*VideoUploader, error) {
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
+	s, err := service.NewAIAvatarService(repository.NewAIAvatarRepository(pool), bucketName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AIAvatarService: %w", err)
+	}
+
 	return &VideoUploader{
 		s3Client:   s3Client,
 		uploader:   uploader,
-		service:    service.NewAIAvatarService(repository.NewAIAvatarRepository(pool)),
+		service:    s,
 		bucketName: bucketName,
 		tempDir:    tempDir,
 	}, nil

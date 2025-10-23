@@ -5,6 +5,14 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -269,6 +277,14 @@ resource "aws_ecs_task_definition" "main" {
         {
           name = "CLOUDFRONT_DOMAIN",
           value = var.cloudfront_domain
+        },
+        {
+          name = "CLOUDFRONT_KEY_PAIR_ID",
+          value = aws_cloudfront_public_key.signed_urls.id
+        },
+        {
+          name = "CLOUDFRONT_PRIVATE_KEY",
+          value = tls_private_key.cloudfront_signing.private_key_pem
         }
       ])
 
@@ -530,6 +546,26 @@ resource "aws_cloudfront_origin_access_identity" "content_oai" {
   comment = "${var.project_name}-content-oai"
 }
 
+# Generate RSA key pair for CloudFront signed URLs
+resource "tls_private_key" "cloudfront_signing" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+# CloudFront Public Key for signed URLs
+resource "aws_cloudfront_public_key" "signed_urls" {
+  comment     = "${var.project_name}-signed-urls-key"
+  encoded_key = tls_private_key.cloudfront_signing.public_key_pem
+  name        = "${var.project_name}-signed-urls-public-key"
+}
+
+# CloudFront Key Group for signed URLs
+resource "aws_cloudfront_key_group" "signed_urls" {
+  comment = "${var.project_name}-signed-urls-key-group"
+  items   = [aws_cloudfront_public_key.signed_urls.id]
+  name    = "${var.project_name}-signed-urls-key-group"
+}
+
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "main" {
   origin {
@@ -590,7 +626,7 @@ resource "aws_cloudfront_distribution" "main" {
     max_ttl                = 0
   }
 
-  # Cache behavior for AI avatar video content
+  # Cache behavior for AI avatar video content (public)
   ordered_cache_behavior {
     path_pattern     = "/ai-avatar/*"
     allowed_methods  = ["GET", "HEAD"]
@@ -612,15 +648,17 @@ resource "aws_cloudfront_distribution" "main" {
     max_ttl               = 31536000 # 1 year
   }
 
-  # Cache behavior for user-generated video content
+  # Cache behavior for user-generated video content (signed URLs)
   ordered_cache_behavior {
     path_pattern     = "/user-generated-videos/*"
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "${var.project_name}-s3-content"
     
+    trusted_key_groups = [aws_cloudfront_key_group.signed_urls.id]
+    
     forwarded_values {
-      query_string = false
+      query_string = true  # Allow query parameters for signed URLs
       headers      = ["Range"]  # Enable video seeking
       cookies {
         forward = "none"
@@ -630,8 +668,8 @@ resource "aws_cloudfront_distribution" "main" {
     compress               = true
     viewer_protocol_policy = "redirect-to-https"
     min_ttl               = 0
-    default_ttl           = 86400    # 24 hours
-    max_ttl               = 31536000 # 1 year
+    default_ttl           = 0        # Don't cache signed URLs
+    max_ttl               = 0        # Don't cache signed URLs
   }
 
   price_class = "PriceClass_100"

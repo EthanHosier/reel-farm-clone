@@ -629,26 +629,26 @@ func (s *APIServer) CreateUserGeneratedVideo(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Generate CloudFront URLs for the generated video
+	// Generate signed CloudFront URLs for the generated video (24 hour expiration)
 	generatedVideoPath := fmt.Sprintf("user-generated-videos/videos/%s", userGeneratedVideo.GeneratedVideoFilename)
 	generatedThumbnailPath := fmt.Sprintf("user-generated-videos/thumbnails/%s", userGeneratedVideo.ThumbnailFilename)
 
-	generatedVideoURL, err := s.generateCloudFrontURL(generatedVideoPath)
+	generatedVideoURL, err := s.aiAvatarService.GenerateSignedURL(generatedVideoPath, 24*time.Hour)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(api.ErrorResponse{
 			Error:   "internal_error",
-			Message: "Failed to generate video URL",
+			Message: "Failed to generate signed video URL",
 		})
 		return
 	}
 
-	generatedThumbnailURL, err := s.generateCloudFrontURL(generatedThumbnailPath)
+	generatedThumbnailURL, err := s.aiAvatarService.GenerateSignedURL(generatedThumbnailPath, 24*time.Hour)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(api.ErrorResponse{
 			Error:   "internal_error",
-			Message: "Failed to generate thumbnail URL",
+			Message: "Failed to generate signed thumbnail URL",
 		})
 		return
 	}

@@ -1,7 +1,6 @@
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
-github.com/bmatcuk/doublestar v1.1.1/go.mod h1:UD6OnuiIn0yFxxA2le/rnRU1G4RaI4UvFv1sNto9p6w=
 github.com/aws/aws-sdk-go-v2 v1.39.3 h1:h7xSsanJ4EQJXG5iuW4UqgP7qBopLpj84mpkNx3wPjM=
 github.com/aws/aws-sdk-go-v2 v1.39.3/go.mod h1:yWSxrnioGUZ4WVv9TgMrNUeLV3PFESn/v+6T/Su8gnM=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.2 h1:t9yYsydLYNBk9cJ73rgPhPWqOh/52fcWDQB5b1JsKSY=
@@ -10,6 +9,8 @@ github.com/aws/aws-sdk-go-v2/config v1.31.14 h1:kj/KpDqvt0UqcEL3WOvCykE9QUpBb6b2
 github.com/aws/aws-sdk-go-v2/config v1.31.14/go.mod h1:X5PaY6QCzViihn/ru7VxnIamcJQrG9NSeTxuSKm2YtU=
 github.com/aws/aws-sdk-go-v2/credentials v1.18.18 h1:5AfxTvDN0AJoA7rg/yEc0sHhl6/B9fZ+NtiQuOjWGQM=
 github.com/aws/aws-sdk-go-v2/credentials v1.18.18/go.mod h1:m9mE1mJ1s7zI6rrt7V3RQU2SCgUbNaphlfqEksLp+Fs=
+github.com/aws/aws-sdk-go-v2/feature/cloudfront/sign v1.9.10 h1:ucc+OsgjRz1gcA3PQHV2KS3U1xnWugvBuVj4CcdfNqs=
+github.com/aws/aws-sdk-go-v2/feature/cloudfront/sign v1.9.10/go.mod h1:PY+9SwW4PHUHYjC+80UzlqmszZaeLoZwtbTEDSCBNDM=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.10 h1:UuGVOX48oP4vgQ36oiKmW9RuSeT8jlgQgBFQD+HUiHY=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.10/go.mod h1:vM/Ini41PzvudT4YkQyE/+WiQJiQ6jzeDyU8pQKwCac=
 github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.19.14 h1:GwY1ngzNKaj8JB8p3xqP+Ekj9TK/9UZaGx/h5nY6INE=

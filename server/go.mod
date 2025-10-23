@@ -18,9 +18,9 @@ require (
 
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.39.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.2 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.18 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/cloudfront/sign v1.9.10 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.10 // indirect
