@@ -33,7 +33,6 @@ stripe_webhook_secret = "whsec_..."
 openai_api_key = "sk-proj-..."
 
 # CloudFront Configuration
-cloudfront_domain = "d1234567890.cloudfront.net"
 
 # SSL Configuration (optional)
 # domain_name = "api.yourdomain.com"

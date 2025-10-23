@@ -276,7 +276,7 @@ resource "aws_ecs_task_definition" "main" {
         },
         {
           name = "CLOUDFRONT_DOMAIN",
-          value = var.cloudfront_domain
+          value = aws_cloudfront_distribution.main.domain_name
         },
         {
           name = "CLOUDFRONT_KEY_PAIR_ID",
