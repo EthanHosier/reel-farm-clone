@@ -137,6 +137,23 @@ $$;
 
 
 --
+-- Name: ai_avatar_videos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ai_avatar_videos (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    description text,
+    filename text NOT NULL,
+    thumbnail_filename text NOT NULL,
+    duration integer,
+    file_size bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: credit_txns; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -458,10 +475,25 @@ CREATE INDEX idx_hooks_user_id ON public.hooks USING btree (user_id);
 
 --
 -- Name: videos videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_avatar_videos videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.videos
+ALTER TABLE ONLY public.ai_avatar_videos
     ADD CONSTRAINT videos_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_ai_avatar_videos_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ai_avatar_videos_created_at ON public.ai_avatar_videos USING btree (created_at DESC);
+
+
+--
+-- Name: idx_ai_avatar_videos_title; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ai_avatar_videos_title ON public.ai_avatar_videos USING btree (title);
 
 
 --
@@ -507,17 +539,10 @@ CREATE INDEX idx_hooks_user_id ON public.hooks USING btree (user_id);
 
 
 --
--- Name: idx_videos_created_at; Type: INDEX; Schema: public; Owner: -
+-- Name: ai_avatar_videos set_updated_at_ai_avatar_videos; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_videos_created_at ON public.videos USING btree (created_at DESC);
-
-
---
--- Name: idx_videos_title; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_videos_title ON public.videos USING btree (title);
+CREATE TRIGGER set_updated_at_ai_avatar_videos BEFORE UPDATE ON public.ai_avatar_videos FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
 
 
 --

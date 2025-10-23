@@ -29,15 +29,15 @@ type Querier interface {
 	RefundCredits(ctx context.Context, arg *RefundCreditsParams) error
 	RemoveCreditsFromUser(ctx context.Context, arg *RemoveCreditsFromUserParams) error
 	ReserveCredits(ctx context.Context, arg *ReserveCreditsParams) (*ReserveCreditsRow, error)
-	CreateVideo(ctx context.Context, arg *CreateVideoParams) (*Video, error)
+	CreateVideo(ctx context.Context, arg *CreateVideoParams) (*AiAvatarVideo, error)
 	DeleteVideo(ctx context.Context, id uuid.UUID) error
-	GetAllVideos(ctx context.Context) ([]*Video, error)
+	GetAllVideos(ctx context.Context) ([]*AiAvatarVideo, error)
 	GetUserAccount(ctx context.Context, id uuid.UUID) (*UserAccount, error)
 	GetUserByBillingCustomerID(ctx context.Context, billingCustomerID *string) (*UserAccount, error)
-	GetVideoByID(ctx context.Context, id uuid.UUID) (*Video, error)
+	GetVideoByID(ctx context.Context, id uuid.UUID) (*AiAvatarVideo, error)
 	UpdateUserBillingCustomerID(ctx context.Context, arg *UpdateUserBillingCustomerIDParams) error
 	UpdateUserPlan(ctx context.Context, arg *UpdateUserPlanParams) error
-	UpdateVideo(ctx context.Context, arg *UpdateVideoParams) (*Video, error)
+	UpdateVideo(ctx context.Context, arg *UpdateVideoParams) (*AiAvatarVideo, error)
 }
 
 var _ Querier = (*Queries)(nil)

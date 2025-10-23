@@ -11,6 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AiAvatarVideo struct {
+	ID                uuid.UUID `json:"id"`
+	Title             string    `json:"title"`
+	Description       *string   `json:"description"`
+	Filename          string    `json:"filename"`
+	ThumbnailFilename string    `json:"thumbnail_filename"`
+	Duration          *int32    `json:"duration"`
+	FileSize          *int64    `json:"file_size"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
 // Tracks credit transactions for idempotency and audit purposes
 type CreditTxn struct {
 	// Unique transaction identifier
@@ -66,16 +78,4 @@ type UserAccount struct {
 	UpdatedAt         time.Time          `json:"updated_at"`
 	// Number of credits available to the user (must be >= 0, default 100)
 	Credits int32 `json:"credits"`
-}
-
-type Video struct {
-	ID                uuid.UUID `json:"id"`
-	Title             string    `json:"title"`
-	Description       *string   `json:"description"`
-	Filename          string    `json:"filename"`
-	ThumbnailFilename string    `json:"thumbnail_filename"`
-	Duration          *int32    `json:"duration"`
-	FileSize          *int64    `json:"file_size"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
 }

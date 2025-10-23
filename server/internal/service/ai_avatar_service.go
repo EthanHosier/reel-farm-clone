@@ -20,22 +20,22 @@ func NewAIAvatarService(repo *repository.AIAvatarRepository) *AIAvatarService {
 }
 
 // GetAllVideos retrieves all AI avatar videos
-func (s *AIAvatarService) GetAllVideos(ctx context.Context) ([]*db.Video, error) {
+func (s *AIAvatarService) GetAllVideos(ctx context.Context) ([]*db.AiAvatarVideo, error) {
 	return s.repo.GetAllVideos(ctx)
 }
 
 // GetVideoByID retrieves a specific video by ID
-func (s *AIAvatarService) GetVideoByID(ctx context.Context, id uuid.UUID) (*db.Video, error) {
+func (s *AIAvatarService) GetVideoByID(ctx context.Context, id uuid.UUID) (*db.AiAvatarVideo, error) {
 	return s.repo.GetVideoByID(ctx, id)
 }
 
 // CreateVideo creates a new video record
-func (s *AIAvatarService) CreateVideo(ctx context.Context, params *db.CreateVideoParams) (*db.Video, error) {
+func (s *AIAvatarService) CreateVideo(ctx context.Context, params *db.CreateVideoParams) (*db.AiAvatarVideo, error) {
 	return s.repo.CreateVideo(ctx, params)
 }
 
 // UpdateVideo updates an existing video
-func (s *AIAvatarService) UpdateVideo(ctx context.Context, params *db.UpdateVideoParams) (*db.Video, error) {
+func (s *AIAvatarService) UpdateVideo(ctx context.Context, params *db.UpdateVideoParams) (*db.AiAvatarVideo, error) {
 	return s.repo.UpdateVideo(ctx, params)
 }
 
@@ -84,7 +84,7 @@ func (s *AIAvatarService) GetAllVideosWithURLs(ctx context.Context, cloudfrontDo
 
 // VideoWithURLs represents a video with CloudFront URLs
 type VideoWithURLs struct {
-	Video        *db.Video `json:"video"`
-	VideoURL     string    `json:"video_url"`
-	ThumbnailURL string    `json:"thumbnail_url"`
+	Video        *db.AiAvatarVideo `json:"video"`
+	VideoURL     string            `json:"video_url"`
+	ThumbnailURL string            `json:"thumbnail_url"`
 }
