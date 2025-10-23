@@ -31,11 +31,11 @@ clean: ## Clean generated files
 
 dev: ## Run development server
 	@echo "🚀 Starting development server..."
-	@go run cmd/main.go
+	@go run cmd/run-server/main.go
 
 build: ## Build the application
 	@echo "🔨 Building application..."
-	@go build -o bin/server cmd/main.go
+	@go build -o bin/server cmd/run-server/main.go
 	@echo "✅ Built successfully"
 
 test: ## Run tests
