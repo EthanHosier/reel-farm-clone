@@ -9,6 +9,27 @@
   font-display: swap;
 }
 
+/* Hide video controls by default, show on hover */
+.video-hide-controls::-webkit-media-controls {
+  display: none;
+}
+
+.video-hide-controls:hover::-webkit-media-controls {
+  display: block;
+}
+
+/* Individual control selectors for fine-tuning if needed */
+.video-hide-controls::-webkit-media-controls-play-button {
+}
+.video-hide-controls::-webkit-media-controls-volume-slider {
+}
+.video-hide-controls::-webkit-media-controls-mute-button {
+}
+.video-hide-controls::-webkit-media-controls-timeline {
+}
+.video-hide-controls::-webkit-media-controls-current-time-display {
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
