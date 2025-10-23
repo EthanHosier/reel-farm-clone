@@ -147,7 +147,7 @@ jobs:
         run: |
           echo "🎉 Deployment successful!"
           echo "Application is available at: http://${{ steps.get-alb-dns.outputs.alb-dns }}"
-          echo "Health check: http://${{ steps.get-alb-dns.outputs.alb-dns }}/api/health"
+          echo "Health check: http://${{ steps.get-alb-dns.outputs.alb-dns }}/health"
 
       - name: Deployment failure notification
         if: failure()
