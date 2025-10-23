@@ -272,14 +272,14 @@ func (s *AIAvatarService) addTextOverlay(inputPath, text, outputPath string) err
 	go func() {
 		scanner := bufio.NewScanner(stdoutPipe)
 		for scanner.Scan() {
-			log.Printf("FFmpeg stdout: %s", scanner.Text())
+			// log.Printf("FFmpeg stdout: %s", scanner.Text())
 		}
 	}()
 
 	go func() {
 		scanner := bufio.NewScanner(stderrPipe)
 		for scanner.Scan() {
-			log.Printf("FFmpeg stderr: %s", scanner.Text())
+			// log.Printf("FFmpeg stderr: %s", scanner.Text())
 		}
 	}()
 

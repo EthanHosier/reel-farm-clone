@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -23,6 +24,12 @@ func main() {
 	// Parse command line flags
 	noAuth := flag.Bool("noAuth", false, "Disable authentication (for development/testing)")
 	flag.Parse()
+
+	// Configure structured logging
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
 
 	// Load .env file if it exists
 	envPath := filepath.Join(".", ".env")
@@ -98,11 +105,11 @@ func main() {
 	// Create main router
 	mux := http.NewServeMux()
 
-	// Add API routes (with auth middleware)
-	mux.Handle("/", middleware.CORSMiddleware()(apiHandler))
+	// Add API routes (with auth middleware and logging)
+	mux.Handle("/", middleware.Logging(middleware.CORSMiddleware()(apiHandler)))
 
-	// Add webhook routes (no auth middleware, but with CORS)
-	mux.Handle("/webhooks/stripe", middleware.CORSMiddleware()(webhookHandler))
+	// Add webhook routes (no auth middleware, but with CORS and logging)
+	mux.Handle("/webhooks/stripe", middleware.Logging(middleware.CORSMiddleware()(webhookHandler)))
 
 	// Start the server
 	fmt.Printf("🚀 Reel Farm server starting on port %s\n", port)
