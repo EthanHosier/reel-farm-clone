@@ -9,8 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useHooks } from "../queries/useHooks";
-import { useCreateUserGeneratedVideo } from "../queries/useCreateUserGeneratedVideo";
+import { useHooks } from "@/features/videos/generate-ai-avatar-video/queries/useHooks";
+import { useCreateUserGeneratedVideo } from "@/features/videos/generate-ai-avatar-video/queries/useCreateUserGeneratedVideo";
 
 interface VideoGenerationFormProps {
   selectedAvatarVideoId: string | null;

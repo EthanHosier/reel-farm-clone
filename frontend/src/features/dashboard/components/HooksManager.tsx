@@ -17,7 +17,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useHooks, useGenerateHooks, useDeleteHook } from "../queries/useHooks";
+import {
+  useHooks,
+  useGenerateHooks,
+  useDeleteHook,
+} from "@/features/videos/generate-ai-avatar-video/queries/useHooks";
 import { Trash2, Loader2 } from "lucide-react";
 import type { Hook } from "@/api";
 

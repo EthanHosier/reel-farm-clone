@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAIAvatarVideos } from "../queries/useAIAvatarVideos";
+import { useAIAvatarVideos } from "@/features/videos/generate-ai-avatar-video/queries/useAIAvatarVideos";
 
 interface AIAvatarVideosProps {
   selectedAvatarVideoId: string | null;
