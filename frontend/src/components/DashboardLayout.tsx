@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useLocation } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
@@ -14,22 +15,15 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/contexts/AuthContext";
+import { buildBreadcrumbs } from "@/lib/dashboard/buildBreadcrumbs";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  breadcrumb?: {
-    items: Array<{
-      label: string;
-      href?: string;
-    }>;
-  };
 }
 
-export function DashboardLayout({
-  children,
-  breadcrumb,
-}: DashboardLayoutProps) {
+export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const location = useLocation();
+  const breadcrumb = buildBreadcrumbs(location.pathname);
   return (
     <SidebarProvider
       style={
@@ -49,7 +43,7 @@ export function DashboardLayout({
           {breadcrumb && (
             <Breadcrumb>
               <BreadcrumbList>
-                {breadcrumb.items.map((item, index) => (
+                {breadcrumb.map((item, index) => (
                   <React.Fragment key={index}>
                     <BreadcrumbItem
                       className={index === 0 ? "hidden md:block" : ""}
@@ -62,7 +56,7 @@ export function DashboardLayout({
                         <BreadcrumbPage>{item.label}</BreadcrumbPage>
                       )}
                     </BreadcrumbItem>
-                    {index < breadcrumb.items.length - 1 && (
+                    {index < breadcrumb.length - 1 && (
                       <BreadcrumbSeparator className="hidden md:block" />
                     )}
                   </React.Fragment>
