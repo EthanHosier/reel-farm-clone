@@ -19,6 +19,7 @@ import {
 import { NavUser } from "@/components/nav-user";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/features/dashboard/queries/useUser";
+import { ROUTES } from "@/types/routes";
 
 interface NavigationItem {
   title: string;
@@ -38,11 +39,11 @@ const navigationData: NavigationItem[] = [
     items: [
       {
         title: "Your Videos",
-        url: "/dashboard/your-videos",
+        url: ROUTES.yourVideos,
       },
       {
         title: "Generate AI UGC",
-        url: "/dashboard/generate-ai-ugc",
+        url: ROUTES.generateAiAvatarVideo,
       },
     ],
   },
@@ -52,7 +53,7 @@ const navigationData: NavigationItem[] = [
     items: [
       {
         title: "Generate Hooks",
-        url: "/dashboard/hooks/generate",
+        url: ROUTES.generateHooks,
       },
     ],
   },
