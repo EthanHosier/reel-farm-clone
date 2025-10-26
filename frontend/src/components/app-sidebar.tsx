@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LayoutDashboard, Video, BookOpen } from "lucide-react";
+import { Video } from "lucide-react";
 
 import {
   Sidebar,
