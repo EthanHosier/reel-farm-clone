@@ -1,4 +1,4 @@
 export const ROUTES = {
-  auth: "/auth",
+  auth: "/",
   dashboard: "/dashboard",
 };

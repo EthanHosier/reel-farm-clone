@@ -3,17 +3,20 @@ import Auth from "@/features/auth/auth";
 import Dashboard from "@/features/dashboard/Dashboard";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ROUTES } from "@/types/routes";
+import { DashboardLayout } from "./components/DashboardLayout";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
+    path: ROUTES.auth,
     element: <Auth />,
   },
   {
     path: ROUTES.dashboard,
     element: (
       <ProtectedRoute>
-        <Dashboard />
+        <DashboardLayout>
+          <Dashboard />
+        </DashboardLayout>
       </ProtectedRoute>
     ),
   },
