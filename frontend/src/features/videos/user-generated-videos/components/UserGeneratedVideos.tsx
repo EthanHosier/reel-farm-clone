@@ -7,13 +7,9 @@ import {
 } from "@/components/ui/card";
 import { useUserGeneratedVideos } from "../queries/useUserGeneratedVideos";
 
-interface UserGeneratedVideosProps {
-  onVideoSelect: (videoUrl: string) => void;
-}
+interface UserGeneratedVideosProps {}
 
-export function UserGeneratedVideos({
-  onVideoSelect,
-}: UserGeneratedVideosProps) {
+export function UserGeneratedVideos({}: UserGeneratedVideosProps) {
   const {
     data: userGeneratedVideos,
     isLoading: userVideosLoading,
@@ -41,7 +37,7 @@ export function UserGeneratedVideos({
               <div
                 key={video.id}
                 className="bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => onVideoSelect(video.video_url)}
+                onClick={() => {}}
               >
                 <div className="aspect-[9/16] bg-gray-100 rounded-lg overflow-hidden">
                   <img

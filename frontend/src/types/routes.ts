@@ -3,5 +3,5 @@ export const ROUTES = {
   dashboard: "/dashboard",
   generateHooks: "/dashboard/hooks/generate-hooks",
   generateAiAvatarVideo: "/dashboard/videos/generate-ai-avatar-video",
-  yourVideos: "/dashboard/videos/your-videos",
+  userGeneratedVideos: "/dashboard/videos/your-videos",
 };

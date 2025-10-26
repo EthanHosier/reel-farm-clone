@@ -7,7 +7,7 @@ import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
 import { AIAvatarVideos } from "./components/AIAvatarVideos";
 import { VideoPreview } from "./components/VideoPreview";
 import { VideoGenerationForm } from "./components/VideoGenerationForm";
-import { UserGeneratedVideos } from "./components/UserGeneratedVideos";
+import { YourVideos } from "@/features/videos/user-generated-videos/YourVideos";
 import { AccountInfo } from "./components/AccountInfo";
 import { HealthStatus } from "./components/HealthStatus";
 import React, { useState } from "react";
@@ -143,7 +143,7 @@ export default function Dashboard() {
         </div>
 
         <div className="mb-6">
-          <UserGeneratedVideos onVideoSelect={handleUserVideoSelect} />
+          <YourVideos onVideoSelect={handleUserVideoSelect} />
         </div>
       </div>
     </div>

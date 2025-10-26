@@ -39,7 +39,7 @@ const navigationData: NavigationItem[] = [
     items: [
       {
         title: "Your Videos",
-        url: ROUTES.yourVideos,
+        url: ROUTES.userGeneratedVideos,
       },
       {
         title: "Generate AI UGC",

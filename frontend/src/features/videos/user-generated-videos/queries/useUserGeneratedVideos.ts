@@ -12,3 +12,4 @@ export function useUserGeneratedVideos() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+
