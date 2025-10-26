@@ -5,9 +5,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ROUTES } from "@/types/routes";
 import { DashboardLayout } from "./components/DashboardLayout";
 import { GenerateHooks } from "./features/hooks/generate-hooks/GenerateHooks";
-import { YourVideos } from "./features/videos/user-generated-videos/YourVideos";
 import { GenerateAiAvatarVideo } from "./features/videos/generate-ai-avatar-video/GenerateAiAvatarVideo";
-import { UserGeneratedVideos } from "./features/videos/user-generated-videos/components/UserGeneratedVideos";
+import { UserGeneratedVideos } from "./features/videos/user-generated-videos/UserGeneratedVideos";
 
 export const router = createBrowserRouter([
   {

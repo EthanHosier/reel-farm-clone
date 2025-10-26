@@ -7,7 +7,6 @@ import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
 import { AIAvatarVideos } from "./components/AIAvatarVideos";
 import { VideoPreview } from "./components/VideoPreview";
 import { VideoGenerationForm } from "./components/VideoGenerationForm";
-import { YourVideos } from "@/features/videos/user-generated-videos/YourVideos";
 import { AccountInfo } from "./components/AccountInfo";
 import { HealthStatus } from "./components/HealthStatus";
 import React, { useState } from "react";
@@ -140,10 +139,6 @@ export default function Dashboard() {
             selectedVideo={selectedVideo}
             overlayText={overlayText}
           />
-        </div>
-
-        <div className="mb-6">
-          <YourVideos onVideoSelect={handleUserVideoSelect} />
         </div>
       </div>
     </div>
