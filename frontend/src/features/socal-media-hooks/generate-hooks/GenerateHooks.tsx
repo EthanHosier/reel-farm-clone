@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -24,12 +16,25 @@ import {
 } from "@/features/videos/generate-ai-avatar-video/queries/useHooks";
 import { Trash2, Loader2 } from "lucide-react";
 import type { Hook } from "@/api";
+import { useAuth } from "@/contexts/AuthContext";
+
+const NUM_HOOKS = 5;
+const SUGGESTIONS = [
+  "Fun facts about cooking",
+  "Money-saving tips",
+  "Life hacks everyone should know",
+  "Relationship advice",
+  "Health and wellness tips",
+];
 
 export function GenerateHooks() {
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState("");
-  const [numHooks, setNumHooks] = useState(3);
   const [limit] = useState(20);
   const [offset] = useState(0);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(
+    null
+  );
 
   // Queries and mutations
   const {
@@ -37,7 +42,8 @@ export function GenerateHooks() {
     isLoading: hooksLoading,
     error: hooksError,
   } = useHooks(limit, offset);
-  const generateHooks = useGenerateHooks();
+  const { mutateAsync: generateHooks, isPending: generateHooksPending } =
+    useGenerateHooks();
   const deleteHook = useDeleteHook();
 
   const handleGenerateHooks = async () => {
@@ -47,9 +53,9 @@ export function GenerateHooks() {
     }
 
     try {
-      await generateHooks.mutateAsync({
+      await generateHooks({
         prompt: prompt.trim(),
-        num_hooks: numHooks,
+        num_hooks: NUM_HOOKS,
       });
       setPrompt(""); // Clear prompt after successful generation
     } catch (error) {
@@ -71,61 +77,79 @@ export function GenerateHooks() {
     }
   };
 
+  const firstName = user?.email?.split("@")[0] || "there";
+
   return (
-    <div className="space-y-6">
-      {/* Generate Hooks Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate Hooks</CardTitle>
-          <CardDescription>
-            Create TikTok hooks for your slideshow content
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="prompt">Prompt</Label>
+    <div className="space-y-8">
+      {/* Main Prompt Section */}
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
+        {/* Greeting */}
+        <h2 className="text-3xl font-light">
+          Ready to create viral hooks,{" "}
+          {firstName.charAt(0).toUpperCase() + firstName.slice(1)}?
+        </h2>
+
+        {/* Central Input */}
+        <div className="w-full max-w-2xl relative">
+          <div className="relative flex items-center bg-white rounded-full border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow px-2 justify-between ">
             <Input
               id="prompt"
-              placeholder="e.g., Plants dying in my house"
+              disabled={generateHooksPending}
+              placeholder="Ask anything"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && prompt.trim()) {
+                  handleGenerateHooks();
+                }
+              }}
+              className="mx-2 w-full pr-20 py-6 text-lg border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
+            <Button
+              className="py-2 rounded-full"
+              onClick={handleGenerateHooks}
+              disabled={generateHooksPending}
+            >
+              {generateHooksPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Generate"
+              )}
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="numHooks">Number of Hooks</Label>
-            <Input
-              id="numHooks"
-              type="number"
-              min="1"
-              max="10"
-              value={numHooks}
-              onChange={(e) => setNumHooks(parseInt(e.target.value) || 3)}
-            />
-          </div>
-          <Button
-            onClick={handleGenerateHooks}
-            disabled={generateHooks.isPending || !prompt.trim()}
-            className="w-full"
-          >
-            {generateHooks.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Hooks...
-              </>
-            ) : (
-              "Generate Hooks"
-            )}
-          </Button>
-        </CardContent>
-      </Card>
 
-      {/* Hooks List Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Hooks</CardTitle>
-          <CardDescription>Manage your generated hooks</CardDescription>
-        </CardHeader>
-        <CardContent>
+          {/* Suggestions */}
+          <div className="mt-6">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {SUGGESTIONS.map((suggestion) => (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  key={suggestion}
+                  onClick={() => {
+                    setPrompt(suggestion);
+                    setSelectedSuggestion(suggestion);
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm transition ${
+                    selectedSuggestion === suggestion
+                      ? "bg-black text-white"
+                      : " text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hooks List Section */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Generated Hooks</h2>
+        </div>
+        <div>
           {hooksLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -166,7 +190,7 @@ export function GenerateHooks() {
                         </TableCell>
                         <TableCell>
                           <Button
-                            variant="destructive"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteHook(hook.id)}
                             disabled={deleteHook.isPending}
@@ -181,8 +205,8 @@ export function GenerateHooks() {
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

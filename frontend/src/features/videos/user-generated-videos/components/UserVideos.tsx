@@ -6,7 +6,7 @@ interface UserVideosProps {
 }
 
 export function UserVideos({ userVideos }: UserVideosProps) {
-  if (userVideos.length === 0 || true) {
+  if (userVideos.length === 0) {
     return <EmptyState />;
   }
 
