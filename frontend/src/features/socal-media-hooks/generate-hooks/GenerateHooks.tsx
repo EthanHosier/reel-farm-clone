@@ -10,8 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useHooks } from "@/hooks/useGetHooks";
-import { useGenerateHooks } from "./hooks/useGenerateHooks";
-import { useDeleteHooksBulk } from "./hooks/useDeleteHooks";
+import { useGenerateHooks } from "./queries/useGenerateHooks";
+import { useDeleteHooksBulk } from "./queries/useDeleteHooks";
 import { Loader2 } from "lucide-react";
 import type { Hook } from "@/api";
 import { useAuth } from "@/contexts/AuthContext";
