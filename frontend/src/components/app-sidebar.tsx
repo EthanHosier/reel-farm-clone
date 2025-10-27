@@ -49,7 +49,7 @@ const navigationData: NavigationItem[] = [
   },
   {
     title: "Hooks",
-    url: "/dashboard",
+    url: "#",
     items: [
       {
         title: "Generate Hooks",

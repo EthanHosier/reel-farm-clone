@@ -25,7 +25,7 @@ import {
 import { Trash2, Loader2 } from "lucide-react";
 import type { Hook } from "@/api";
 
-export function HooksManager() {
+export function GenerateHooks() {
   const [prompt, setPrompt] = useState("");
   const [numHooks, setNumHooks] = useState(3);
   const [limit] = useState(20);

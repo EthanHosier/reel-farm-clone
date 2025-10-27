@@ -47,19 +47,6 @@ export function AIAvatarSection({
         )}
       </div>
 
-      {/* Tabs placeholder */}
-      <div className="flex gap-1 mb-3 p-1 bg-gray-100 rounded-md w-fit">
-        <button className="px-3 py-1.5 text-xs font-medium bg-white rounded shadow-sm">
-          Default
-        </button>
-        <button className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900">
-          My UGC
-        </button>
-        <button className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900">
-          Uploads
-        </button>
-      </div>
-
       {videosLoading && (
         <p className="text-sm text-gray-500 py-4">
           Loading AI avatar videos...

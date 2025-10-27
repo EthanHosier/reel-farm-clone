@@ -2,7 +2,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useHealth } from "./queries/useHealth";
 import { useUser } from "./queries/useUser";
-import { HooksManager } from "./components/HooksManager";
 import { AccountInfo } from "./components/AccountInfo";
 import { HealthStatus } from "./components/HealthStatus";
 
@@ -74,10 +73,6 @@ export default function Dashboard() {
             <AccountInfo userAccount={userAccount} />
           </div>
         )}
-
-        <div className="mb-6">
-          <HooksManager />
-        </div>
       </div>
     </div>
   );
