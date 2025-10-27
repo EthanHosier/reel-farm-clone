@@ -131,7 +131,7 @@ func (s *HookService) GetHooks(ctx context.Context, userID uuid.UUID, limit int3
 	}
 
 	// Convert database hooks to API hooks
-	var hookResults []api.Hook
+	hookResults := []api.Hook{}
 	for _, dbHook := range dbHooks {
 		hookResults = append(hookResults, api.Hook{
 			Id:   dbHook.ID,

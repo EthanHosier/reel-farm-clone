@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useHooks } from "@/features/videos/generate-ai-avatar-video/queries/useHooks";
+import { useHooks } from "@/hooks/useGetHooks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface HookSectionProps {

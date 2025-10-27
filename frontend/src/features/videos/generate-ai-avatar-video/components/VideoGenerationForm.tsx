@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useHooks } from "@/features/videos/generate-ai-avatar-video/queries/useHooks";
+import { useHooks } from "@/hooks/useGetHooks";
 import { useCreateUserGeneratedVideo } from "@/features/videos/generate-ai-avatar-video/queries/useCreateUserGeneratedVideo";
 
 interface VideoGenerationFormProps {

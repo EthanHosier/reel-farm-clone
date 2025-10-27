@@ -487,7 +487,7 @@ func (s *APIServer) GetHooks(w http.ResponseWriter, r *http.Request, params api.
 		return
 	}
 
-	// Return hooks
+	// Ensure hooks is never nil - initialize as empty slice if nil
 	response := api.GetHooksResponse{
 		Hooks:      hooks,
 		TotalCount: int(totalCount),

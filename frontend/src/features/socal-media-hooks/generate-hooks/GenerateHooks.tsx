@@ -9,14 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  useHooks,
-  useGenerateHooks,
-  useDeleteHook,
-} from "@/features/videos/generate-ai-avatar-video/queries/useHooks";
-import { Trash2, Loader2 } from "lucide-react";
+import { useHooks } from "@/hooks/useGetHooks";
+import { useGenerateHooks } from "./hooks/useGenerateHooks";
+import { useDeleteHooksBulk } from "./hooks/useDeleteHooks";
+import { Loader2 } from "lucide-react";
 import type { Hook } from "@/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const NUM_HOOKS = 5;
 const SUGGESTIONS = [
@@ -35,6 +35,9 @@ export function GenerateHooks() {
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(
     null
   );
+  const [selectedHookIds, setSelectedHookIds] = useState<Set<string>>(
+    new Set()
+  );
 
   // Queries and mutations
   const {
@@ -44,7 +47,8 @@ export function GenerateHooks() {
   } = useHooks(limit, offset);
   const { mutateAsync: generateHooks, isPending: generateHooksPending } =
     useGenerateHooks();
-  const deleteHook = useDeleteHook();
+  const { mutateAsync: deleteHooksBulk, isPending: isDeleting } =
+    useDeleteHooksBulk();
 
   const handleGenerateHooks = async () => {
     if (!prompt.trim()) {
@@ -64,16 +68,49 @@ export function GenerateHooks() {
     }
   };
 
-  const handleDeleteHook = async (hookId: string) => {
-    if (!confirm("Are you sure you want to delete this hook?")) {
+  const toggleHookSelection = (hookId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedHookIds((prev) => new Set(prev).add(hookId));
+    } else {
+      setSelectedHookIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(hookId);
+        return newSet;
+      });
+    }
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedHookIds(new Set(hooksData?.hooks.map((h) => h.id) || []));
+    } else {
+      setSelectedHookIds(new Set());
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedHookIds.size === 0) {
+      alert("Please select at least one hook to delete");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedHookIds.size} hook(s)?`
+      )
+    ) {
       return;
     }
 
     try {
-      await deleteHook.mutateAsync(hookId);
+      await deleteHooksBulk({
+        hook_ids: Array.from(selectedHookIds),
+      });
+      // Clear selection after successful delete
+      setSelectedHookIds(new Set());
     } catch (error) {
-      console.error("Error deleting hook:", error);
-      alert("Failed to delete hook. Please try again.");
+      console.error("Error deleting hooks:", error);
+      alert("Failed to delete hooks. Please try again.");
     }
   };
 
@@ -152,8 +189,7 @@ export function GenerateHooks() {
         <div>
           {hooksLoading && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              Loading hooks...
+              <Skeleton className="h-64 w-full" />
             </div>
           )}
 
@@ -175,33 +211,63 @@ export function GenerateHooks() {
                   No hooks yet. Generate some hooks to get started!
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Hook Text</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {hooksData.hooks.map((hook: Hook) => (
-                      <TableRow key={hook.id}>
-                        <TableCell className="font-medium">
-                          {hook.text}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteHook(hook.id)}
-                            disabled={deleteHook.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Hook</TableHead>
+                        <TableHead className="w-[50px]">
+                          <Checkbox
+                            checked={
+                              hooksData.hooks.length > 0 &&
+                              selectedHookIds.size === hooksData.hooks.length
+                            }
+                            onCheckedChange={(checked) =>
+                              toggleSelectAll(checked === true)
+                            }
+                            className="cursor-pointer"
+                          />
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {hooksData.hooks.map((hook: Hook) => (
+                        <TableRow key={hook.id}>
+                          <TableCell className="font-medium">
+                            {hook.text}
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedHookIds.has(hook.id)}
+                              onCheckedChange={(checked) =>
+                                toggleHookSelection(hook.id, checked === true)
+                              }
+                              className="cursor-pointer"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {selectedHookIds.size > 0 && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="destructive"
+                        onClick={handleBulkDelete}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          `Delete ${selectedHookIds.size} Selected`
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
