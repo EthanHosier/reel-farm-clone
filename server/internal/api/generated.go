@@ -230,6 +230,15 @@ type GetHooksParams struct {
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
+// DeleteHooksBulkJSONBody defines parameters for DeleteHooksBulk.
+type DeleteHooksBulkJSONBody struct {
+	// HookIds Array of hook IDs to delete
+	HookIds []openapi_types.UUID `json:"hook_ids"`
+}
+
+// DeleteHooksBulkJSONRequestBody defines body for DeleteHooksBulk for application/json ContentType.
+type DeleteHooksBulkJSONRequestBody DeleteHooksBulkJSONBody
+
 // GenerateHooksJSONRequestBody defines body for GenerateHooks for application/json ContentType.
 type GenerateHooksJSONRequestBody = GenerateHooksRequest
 
@@ -253,6 +262,9 @@ type ServerInterface interface {
 	// Get user's hooks
 	// (GET /hooks)
 	GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams)
+	// Delete multiple hooks
+	// (DELETE /hooks/bulk)
+	DeleteHooksBulk(w http.ResponseWriter, r *http.Request)
 	// Generate hooks for TikTok slideshow
 	// (POST /hooks/generate)
 	GenerateHooks(w http.ResponseWriter, r *http.Request)
@@ -351,6 +363,26 @@ func (siw *ServerInterfaceWrapper) GetHooks(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHooks(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteHooksBulk operation middleware
+func (siw *ServerInterfaceWrapper) DeleteHooksBulk(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteHooksBulk(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -634,6 +666,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/ai-avatar/videos", wrapper.GetAIAvatarVideos)
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
 	m.HandleFunc("GET "+options.BaseURL+"/hooks", wrapper.GetHooks)
+	m.HandleFunc("DELETE "+options.BaseURL+"/hooks/bulk", wrapper.DeleteHooksBulk)
 	m.HandleFunc("POST "+options.BaseURL+"/hooks/generate", wrapper.GenerateHooks)
 	m.HandleFunc("DELETE "+options.BaseURL+"/hooks/{hookId}", wrapper.DeleteHook)
 	m.HandleFunc("POST "+options.BaseURL+"/subscription/create-checkout-session", wrapper.CreateCheckoutSession)

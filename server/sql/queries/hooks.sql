@@ -27,6 +27,13 @@ WHERE id = $1;
 DELETE FROM public.hooks
 WHERE id = $1 AND user_id = $2;
 
+-- name: DeleteHooks :many
+-- sqlc:arg hook_ids uuid[]
+-- sqlc:arg user_id uuid
+DELETE FROM public.hooks
+WHERE id = ANY(@hook_ids::uuid[]) AND user_id = @user_id
+RETURNING *;
+
 -- name: GetUserHookCount :one
 SELECT COUNT(*) FROM public.hooks
 WHERE user_id = $1;
