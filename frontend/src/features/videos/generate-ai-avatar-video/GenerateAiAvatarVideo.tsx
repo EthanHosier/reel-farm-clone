@@ -5,9 +5,14 @@ import { VideoPreview } from "@/features/videos/generate-ai-avatar-video/compone
 import { useAIAvatarVideos } from "@/features/videos/generate-ai-avatar-video/queries/useAIAvatarVideos";
 import { Button } from "@/components/ui/button";
 import { Title } from "@/components/dashboard/Title";
+import { useCreateUserGeneratedVideo } from "@/features/videos/generate-ai-avatar-video/queries/useCreateUserGeneratedVideo";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export const GenerateAiAvatarVideo = () => {
   const { data: aiAvatarVideos } = useAIAvatarVideos();
+  const { mutateAsync: createVideo, isPending: isCreatingVideo } =
+    useCreateUserGeneratedVideo();
 
   // Video preview state
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
@@ -35,14 +40,38 @@ export const GenerateAiAvatarVideo = () => {
     setOverlayText(newText);
   };
 
+  const handleGenerateVideo = async () => {
+    if (!selectedAvatarVideoId) {
+      toast.error("Please select an AI avatar video");
+      return;
+    }
+
+    if (!overlayText) {
+      toast.error("Please enter text to overlay on the video");
+      return;
+    }
+
+    try {
+      await createVideo({
+        ai_avatar_video_id: selectedAvatarVideoId,
+        overlay_text: overlayText,
+      });
+    } catch (error) {
+      toast.error("Failed to generate video");
+      return;
+    }
+
+    toast.success("Video generated successfully");
+  };
+
   return (
     <div>
       <Title
         title="Generate AI Avatar Video"
         description="Generate videos with your own text overlay."
       />
-      <div className="grid grid-cols-2 gap-4 h-[calc(100vh-8rem)]">
-        <div className="overflow-y-auto space-y-6">
+      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:h-[calc(100vh-8rem)]">
+        <div className="lg:order-1 order-2 overflow-y-auto space-y-6">
           <HookSection onTextChange={handleTextChange} />
           <AIAvatarSection
             selectedAvatarVideoId={selectedAvatarVideoId}
@@ -50,7 +79,7 @@ export const GenerateAiAvatarVideo = () => {
           />
         </div>
 
-        <div className="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-6">
+        <div className="lg:order-2 order-1 flex flex-col items-center justify-center rounded-lg p-6">
           <VideoPreview
             selectedVideo={selectedVideo}
             overlayText={overlayText}
@@ -58,9 +87,14 @@ export const GenerateAiAvatarVideo = () => {
           <Button
             size="lg"
             className="mt-6 w-full max-w-xs"
-            disabled={!selectedAvatarVideoId || !overlayText}
+            disabled={!selectedAvatarVideoId || !overlayText || isCreatingVideo}
+            onClick={handleGenerateVideo}
           >
-            Subscription required to use
+            {isCreatingVideo ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              "Generate UGC"
+            )}
           </Button>
         </div>
       </div>

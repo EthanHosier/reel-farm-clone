@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Video } from "lucide-react";
+import { WandSparkles } from "lucide-react";
 
 import {
   Sidebar,
@@ -78,9 +78,9 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
+              <a href="#">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Video className="size-4" />
+                  <WandSparkles className="size-4" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-medium">Reel Farm</span>

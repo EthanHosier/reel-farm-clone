@@ -4,13 +4,15 @@ import { Input } from "@/components/ui/input";
 import { useHooks } from "@/hooks/useGetHooks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+const PLACEHOLDER_TEXT = "I wish someone told me this sooner...";
+
 interface HookSectionProps {
   onTextChange: (text: string) => void;
 }
 
 export function HookSection({ onTextChange }: HookSectionProps) {
   const [currentHookIndex, setCurrentHookIndex] = useState(0);
-  const [editableText, setEditableText] = useState("");
+  const [editableText, setEditableText] = useState(PLACEHOLDER_TEXT);
 
   const { data: hooks, isLoading: hooksLoading } = useHooks(50, 0);
 
@@ -68,7 +70,6 @@ export function HookSection({ onTextChange }: HookSectionProps) {
         <Input
           value={editableText}
           onChange={(e) => setEditableText(e.target.value)}
-          placeholder="Select a hook..."
           maxLength={500}
           className="flex-1"
         />

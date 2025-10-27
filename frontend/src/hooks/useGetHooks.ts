@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HooksService, type GenerateHooksRequest } from "@/api";
+import { useQuery } from "@tanstack/react-query";
+import { HooksService } from "@/api";
 
 // Query key factory
 export const hooksKeys = {

@@ -140,7 +140,7 @@ export function GenerateHooks() {
                   handleGenerateHooks();
                 }
               }}
-              className="mx-2 w-full pr-20 py-6 text-lg border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="mx-2 w-full py-6 text-sm lg:text-lg border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button
               className="py-2 rounded-full"
@@ -188,9 +188,12 @@ export function GenerateHooks() {
         </div>
         <div>
           {hooksLoading && (
-            <div className="flex items-center justify-center py-8">
-              <Skeleton className="h-64 w-full" />
-            </div>
+            <>
+              <Skeleton className="h-4 w-40" />
+              <div className="flex items-center justify-center py-8">
+                <Skeleton className="h-64 w-full" />
+              </div>
+            </>
           )}
 
           {hooksError && (

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAIAvatarVideos } from "@/features/videos/generate-ai-avatar-video/queries/useAIAvatarVideos";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AIAvatarSectionProps {
   selectedAvatarVideoId: string | null;
@@ -48,9 +49,11 @@ export function AIAvatarSection({
       </div>
 
       {videosLoading && (
-        <p className="text-sm text-gray-500 py-4">
-          Loading AI avatar videos...
-        </p>
+        <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+          {[...Array(6)].map((_, index) => (
+            <Skeleton key={index} className="aspect-square rounded-lg" />
+          ))}
+        </div>
       )}
 
       {videosError && (
@@ -61,7 +64,7 @@ export function AIAvatarSection({
 
       {aiAvatarVideos && (
         <>
-          <div className="grid grid-cols-8 gap-2 mb-2">
+          <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 mb-2">
             {currentPageVideos.map((video) => (
               <button
                 key={video.id}

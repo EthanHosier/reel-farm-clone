@@ -6,8 +6,8 @@ interface TitleProps {
 export const Title = ({ title, description }: TitleProps) => {
   return (
     <div>
-      <h2 className="text-xl font-bold">{title}</h2>
-      <p className="text-gray-600 mb-6 text-sm">{description}</p>
+      <h2 className="text-xl font-semibold">{title}</h2>
+      <p className="text-gray-600 mb-6 text-sm font-light">{description}</p>
     </div>
   );
 };
