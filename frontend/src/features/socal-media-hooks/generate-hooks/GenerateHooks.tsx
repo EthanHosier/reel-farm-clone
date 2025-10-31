@@ -167,7 +167,7 @@ export function GenerateHooks() {
                     setPrompt(suggestion);
                     setSelectedSuggestion(suggestion);
                   }}
-                  className={`px-4 py-2 rounded-full text-sm transition ${
+                  className={`px-4 py-2 rounded-full text-sm transition bg-defaultbg  ${
                     selectedSuggestion === suggestion
                       ? "bg-black text-white"
                       : " text-gray-700 hover:bg-gray-100"
@@ -182,9 +182,9 @@ export function GenerateHooks() {
       </div>
 
       {/* Hooks List Section */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         <div>
-          <h2 className="text-2xl font-bold mb-2">Generated Hooks</h2>
+          <h2 className="text-2xl font-bold">Generated Hooks</h2>
         </div>
         <div>
           {hooksLoading && (
@@ -228,7 +228,7 @@ export function GenerateHooks() {
                             onCheckedChange={(checked) =>
                               toggleSelectAll(checked === true)
                             }
-                            className="cursor-pointer"
+                            className="cursor-pointer bg-defaultbg"
                           />
                         </TableHead>
                       </TableRow>
@@ -245,7 +245,7 @@ export function GenerateHooks() {
                               onCheckedChange={(checked) =>
                                 toggleHookSelection(hook.id, checked === true)
                               }
-                              className="cursor-pointer"
+                              className="cursor-pointer bg-defaultbg"
                             />
                           </TableCell>
                         </TableRow>

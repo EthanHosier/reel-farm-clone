@@ -71,7 +71,7 @@ export function HookSection({ onTextChange }: HookSectionProps) {
           value={editableText}
           onChange={(e) => setEditableText(e.target.value)}
           maxLength={500}
-          className="flex-1"
+          className="flex-1 bg-defaultbg"
         />
         <Button
           variant="ghost"

@@ -60,6 +60,7 @@ func (r *HookRepository) GetHooksByUser(ctx context.Context, userID uuid.UUID, l
 	if err != nil {
 		return nil, fmt.Errorf("failed to get hooks by user: %w", err)
 	}
+	
 	return hooks, nil
 }
 
