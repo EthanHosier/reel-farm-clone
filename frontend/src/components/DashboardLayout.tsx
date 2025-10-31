@@ -28,7 +28,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "19rem",
+          "--sidebar-width": "16rem",
         } as React.CSSProperties
       }
     >

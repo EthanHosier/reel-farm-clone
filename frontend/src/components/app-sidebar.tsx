@@ -73,7 +73,7 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
   };
 
   return (
-    <Sidebar variant="floating" {...props}>
+    <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
