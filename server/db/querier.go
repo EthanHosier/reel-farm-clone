@@ -20,6 +20,9 @@ type Querier interface {
 	CreateUserGeneratedVideo(ctx context.Context, arg *CreateUserGeneratedVideoParams) (*UserGeneratedVideo, error)
 	CreateVideo(ctx context.Context, arg *CreateVideoParams) (*AiAvatarVideo, error)
 	DeleteHook(ctx context.Context, arg *DeleteHookParams) error
+	// sqlc:arg hook_ids uuid[]
+	// sqlc:arg user_id uuid
+	DeleteHooks(ctx context.Context, arg *DeleteHooksParams) ([]*Hook, error)
 	DeleteVideo(ctx context.Context, id uuid.UUID) error
 	GetAllVideos(ctx context.Context) ([]*AiAvatarVideo, error)
 	GetHookByID(ctx context.Context, id uuid.UUID) (*Hook, error)

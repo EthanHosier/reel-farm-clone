@@ -2,15 +2,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useHealth } from "./queries/useHealth";
 import { useUser } from "./queries/useUser";
-import { HooksManager } from "./components/HooksManager";
-import { useAIAvatarVideos } from "./queries/useAIAvatarVideos";
-import { AIAvatarVideos } from "./components/AIAvatarVideos";
-import { VideoPreview } from "./components/VideoPreview";
-import { VideoGenerationForm } from "./components/VideoGenerationForm";
-import { UserGeneratedVideos } from "./components/UserGeneratedVideos";
 import { AccountInfo } from "./components/AccountInfo";
 import { HealthStatus } from "./components/HealthStatus";
-import React, { useState } from "react";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -24,23 +17,6 @@ export default function Dashboard() {
     isLoading: userLoading,
     error: userError,
   } = useUser();
-  const { data: aiAvatarVideos } = useAIAvatarVideos();
-
-  // Video preview state
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-
-  // Video generation state
-  const [selectedAvatarVideoId, setSelectedAvatarVideoId] = useState<
-    string | null
-  >(null);
-  const [overlayText, setOverlayText] = useState("");
-
-  // Set default selected video when videos load
-  React.useEffect(() => {
-    if (aiAvatarVideos && aiAvatarVideos.videos.length > 0 && !selectedVideo) {
-      setSelectedVideo(aiAvatarVideos.videos[0].video_url);
-    }
-  }, [aiAvatarVideos, selectedVideo]);
 
   const handleSignOut = async () => {
     try {
@@ -48,24 +24,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error signing out:", error);
     }
-  };
-
-  const handleVideoSelect = (videoId: string, videoUrl: string) => {
-    setSelectedAvatarVideoId(videoId);
-    setSelectedVideo(videoUrl);
-  };
-
-  const handleCancelGeneration = () => {
-    setSelectedAvatarVideoId(null);
-    setOverlayText("");
-  };
-
-  const handleTextChange = (newText: string) => {
-    setOverlayText(newText);
-  };
-
-  const handleUserVideoSelect = (videoUrl: string) => {
-    setSelectedVideo(videoUrl);
   };
 
   if (healthLoading || userLoading) {
@@ -115,36 +73,6 @@ export default function Dashboard() {
             <AccountInfo userAccount={userAccount} />
           </div>
         )}
-
-        <div className="mb-6">
-          <HooksManager />
-        </div>
-
-        <div className="mb-6">
-          <AIAvatarVideos
-            selectedAvatarVideoId={selectedAvatarVideoId}
-            onVideoSelect={handleVideoSelect}
-          />
-        </div>
-
-        <div className="mb-6">
-          <VideoGenerationForm
-            selectedAvatarVideoId={selectedAvatarVideoId}
-            onCancel={handleCancelGeneration}
-            onTextChange={handleTextChange}
-          />
-        </div>
-
-        <div className="mb-6">
-          <VideoPreview
-            selectedVideo={selectedVideo}
-            overlayText={overlayText}
-          />
-        </div>
-
-        <div className="mb-6">
-          <UserGeneratedVideos onVideoSelect={handleUserVideoSelect} />
-        </div>
       </div>
     </div>
   );

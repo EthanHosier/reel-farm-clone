@@ -131,7 +131,7 @@ func (s *HookService) GetHooks(ctx context.Context, userID uuid.UUID, limit int3
 	}
 
 	// Convert database hooks to API hooks
-	var hookResults []api.Hook
+	hookResults := []api.Hook{}
 	for _, dbHook := range dbHooks {
 		hookResults = append(hookResults, api.Hook{
 			Id:   dbHook.ID,
@@ -184,4 +184,23 @@ func (s *HookService) DeleteHook(ctx context.Context, hookID uuid.UUID, userID u
 		return fmt.Errorf("failed to delete hook: %w", err)
 	}
 	return nil
+}
+
+// DeleteHooks deletes multiple hooks (only if they belong to the user)
+func (s *HookService) DeleteHooks(ctx context.Context, hookIDs []uuid.UUID, userID uuid.UUID) ([]api.Hook, error) {
+	deletedHooks, err := s.hookRepo.DeleteHooks(ctx, hookIDs, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete hooks: %w", err)
+	}
+
+	// Convert database hooks to API hooks
+	var hookResults []api.Hook
+	for _, dbHook := range deletedHooks {
+		hookResults = append(hookResults, api.Hook{
+			Id:   dbHook.ID,
+			Text: dbHook.HookText,
+		})
+	}
+
+	return hookResults, nil
 }

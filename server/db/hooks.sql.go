@@ -118,6 +118,49 @@ func (q *Queries) DeleteHook(ctx context.Context, arg *DeleteHookParams) error {
 	return err
 }
 
+const DeleteHooks = `-- name: DeleteHooks :many
+DELETE FROM public.hooks
+WHERE id = ANY($1::uuid[]) AND user_id = $2
+RETURNING id, user_id, generation_id, prompt, hook_text, hook_index, credits_used, created_at, updated_at
+`
+
+type DeleteHooksParams struct {
+	HookIds []pgtype.UUID `json:"hook_ids"`
+	UserID  pgtype.UUID   `json:"user_id"`
+}
+
+// sqlc:arg hook_ids uuid[]
+// sqlc:arg user_id uuid
+func (q *Queries) DeleteHooks(ctx context.Context, arg *DeleteHooksParams) ([]*Hook, error) {
+	rows, err := q.db.Query(ctx, DeleteHooks, arg.HookIds, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*Hook{}
+	for rows.Next() {
+		var i Hook
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.GenerationID,
+			&i.Prompt,
+			&i.HookText,
+			&i.HookIndex,
+			&i.CreditsUsed,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const GetHookByID = `-- name: GetHookByID :one
 SELECT id, user_id, generation_id, prompt, hook_text, hook_index, credits_used, created_at, updated_at FROM public.hooks
 WHERE id = $1

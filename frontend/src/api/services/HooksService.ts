@@ -57,6 +57,43 @@ export class HooksService {
         });
     }
     /**
+     * Delete multiple hooks
+     * Deletes multiple hooks by ID (only if they belong to the authenticated user)
+     * @param requestBody
+     * @returns any Hooks deleted successfully
+     * @throws ApiError
+     */
+    public static deleteHooksBulk(
+        requestBody: {
+            /**
+             * Array of hook IDs to delete
+             */
+            hook_ids: Array<string>;
+        },
+    ): CancelablePromise<{
+        message?: string;
+        /**
+         * Number of hooks successfully deleted
+         */
+        deleted_count?: number;
+        /**
+         * Array of successfully deleted hook IDs
+         */
+        deleted_ids?: Array<string>;
+    }> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/hooks/bulk',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid hook IDs or empty array`,
+                401: `Unauthorized - invalid or missing token`,
+                500: `Internal server error`,
+            },
+        });
+    }
+    /**
      * Delete a hook
      * Deletes a specific hook by ID (only if it belongs to the authenticated user)
      * @param hookId The ID of the hook to delete

@@ -487,7 +487,7 @@ func (s *APIServer) GetHooks(w http.ResponseWriter, r *http.Request, params api.
 		return
 	}
 
-	// Return hooks
+	// Ensure hooks is never nil - initialize as empty slice if nil
 	response := api.GetHooksResponse{
 		Hooks:      hooks,
 		TotalCount: int(totalCount),
@@ -550,6 +550,104 @@ func (s *APIServer) DeleteHook(w http.ResponseWriter, r *http.Request, hookId op
 	// Return success response
 	response := map[string]string{
 		"message": "Hook deleted successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// DeleteHooksBulk handles DELETE /hooks/bulk
+func (s *APIServer) DeleteHooksBulk(w http.ResponseWriter, r *http.Request) {
+	// Extract user ID from context
+	userIDStr := context_keys.GetUserID(r.Context())
+	if userIDStr == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User ID not found in context",
+		})
+		return
+	}
+
+	// Convert string to UUID
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_user_id",
+			Message: "Invalid user ID format",
+		})
+		return
+	}
+
+	// Parse request body
+	var requestBody struct {
+		HookIds []string `json:"hook_ids"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "Invalid request body",
+		})
+		return
+	}
+
+	// Validate that hook_ids is not empty
+	if len(requestBody.HookIds) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "hook_ids array cannot be empty",
+		})
+		return
+	}
+
+	// Parse hook IDs
+	hookIDs := make([]uuid.UUID, len(requestBody.HookIds))
+	for i, idStr := range requestBody.HookIds {
+		hookID, err := uuid.Parse(idStr)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(api.ErrorResponse{
+				Error:   "invalid_hook_id",
+				Message: fmt.Sprintf("Invalid hook ID format: %s", idStr),
+			})
+			return
+		}
+		hookIDs[i] = hookID
+	}
+
+	// Delete the hooks
+	deletedHooks, err := s.hookService.DeleteHooks(r.Context(), hookIDs, userID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(api.ErrorResponse{
+			Error:   "failed_to_delete_hooks",
+			Message: "Failed to delete hooks",
+		})
+		return
+	}
+
+	// Extract deleted hook IDs
+	deletedIDs := make([]string, len(deletedHooks))
+	for i, hook := range deletedHooks {
+		deletedIDs[i] = hook.Id.String()
+	}
+
+	// Return success response
+	response := map[string]interface{}{
+		"message":       "Successfully deleted hooks",
+		"deleted_count": len(deletedHooks),
+		"deleted_ids":   deletedIDs,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

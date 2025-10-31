@@ -158,6 +158,70 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /hooks/bulk:
+    delete:
+      summary: Delete multiple hooks
+      description: Deletes multiple hooks by ID (only if they belong to the authenticated user)
+      operationId: deleteHooksBulk
+      tags:
+        - Hooks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hook_ids
+              properties:
+                hook_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Array of hook IDs to delete
+                  minItems: 1
+      responses:
+        "200":
+          description: Hooks deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully deleted hooks"
+                  deleted_count:
+                    type: integer
+                    description: Number of hooks successfully deleted
+                  deleted_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+                    description: Array of successfully deleted hook IDs
+        "400":
+          description: Bad request - invalid hook IDs or empty array
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /hooks/{hookId}:
     delete:
       summary: Delete a hook

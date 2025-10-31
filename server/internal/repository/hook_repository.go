@@ -60,6 +60,7 @@ func (r *HookRepository) GetHooksByUser(ctx context.Context, userID uuid.UUID, l
 	if err != nil {
 		return nil, fmt.Errorf("failed to get hooks by user: %w", err)
 	}
+
 	return hooks, nil
 }
 
@@ -93,6 +94,26 @@ func (r *HookRepository) DeleteHook(ctx context.Context, hookID uuid.UUID, userI
 		return fmt.Errorf("failed to delete hook: %w", err)
 	}
 	return nil
+}
+
+// DeleteHooks deletes multiple hooks (only if they belong to the user)
+func (r *HookRepository) DeleteHooks(ctx context.Context, hookIDs []uuid.UUID, userID uuid.UUID) ([]*db.Hook, error) {
+	// Convert []uuid.UUID to []pgtype.UUID
+	pgtypes := make([]pgtype.UUID, len(hookIDs))
+	for i, id := range hookIDs {
+		pgtypes[i] = pgtype.UUID{Bytes: id, Valid: true}
+	}
+
+	params := &db.DeleteHooksParams{
+		HookIds: pgtypes,
+		UserID:  pgtype.UUID{Bytes: userID, Valid: true},
+	}
+
+	hooks, err := r.queries.DeleteHooks(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete hooks: %w", err)
+	}
+	return hooks, nil
 }
 
 // GetUserHookCount gets the total number of hooks for a user
